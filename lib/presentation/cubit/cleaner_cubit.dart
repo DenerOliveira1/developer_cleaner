@@ -145,6 +145,13 @@ class CleanerCubit extends Cubit<CleanerState> {
     ));
   }
 
+  /// Returns to Idle for another pass, preserving the chosen language and
+  /// refreshing disk stats so the gauge reflects the space just reclaimed.
+  Future<void> restart() async {
+    emit(CleanerState(lang: state.lang));
+    await init();
+  }
+
   /// Empties the Trash — the one permanent action (behind the modal gate).
   Future<void> emptyTrash() async {
     try {

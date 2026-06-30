@@ -64,6 +64,10 @@ class _CleanerPageState extends State<CleanerPage>
     if (s.phase == _lastPhase) return;
     _lastPhase = s.phase;
 
+    // Allow the idle gauge to re-animate on a later return (e.g. after a
+    // restart from Done).
+    if (s.phase != CleanerPhase.idle) _gaugeShown = false;
+
     switch (s.phase) {
       case CleanerPhase.scanning:
         if (!_reduced) _spin.repeat();
@@ -553,6 +557,38 @@ class _CleanerPageState extends State<CleanerPage>
                 const SizedBox(height: 12),
                 Text(str.recoverNote,
                     style: AppText.mono(11.5, color: AppColors.faintest)),
+                if (s.failures.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          size: 14, color: AppColors.confirm),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(str.cleanFailures(s.failures.length),
+                            style:
+                                AppText.mono(11.5, color: AppColors.confirm)),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: () => context.read<CleanerCubit>().restart(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh,
+                          size: 15, color: AppColors.accentMono),
+                      const SizedBox(width: 6),
+                      Text(str.scanAgain,
+                          style: AppText.ui(13,
+                              weight: FontWeight.w500,
+                              color: AppColors.accentMono)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

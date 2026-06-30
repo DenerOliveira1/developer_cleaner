@@ -332,6 +332,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong.'**
   String get genericError;
 
+  /// No description provided for @scanAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan again'**
+  String get scanAgain;
+
+  /// No description provided for @cleanFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule could not be cleaned} other{{count} rules could not be cleaned}}'**
+  String cleanFailures(int count);
+
   /// No description provided for @badge.
   ///
   /// In en, this message translates to:

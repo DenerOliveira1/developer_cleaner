@@ -138,6 +138,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genericError => 'Something went wrong.';
 
   @override
+  String get scanAgain => 'Scan again';
+
+  @override
+  String cleanFailures(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rules could not be cleaned',
+      one: '1 rule could not be cleaned',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String badge(String safety) {
     String _temp0 = intl.Intl.selectLogic(safety, {
       'safe': 'SAFE',

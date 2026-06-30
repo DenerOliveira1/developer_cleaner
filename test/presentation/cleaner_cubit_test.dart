@@ -1,10 +1,12 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:developer_cleaner/core/cleaner/clean_models.dart';
+import 'package:developer_cleaner/domain/entities/clean_outcome.dart';
 import 'package:developer_cleaner/domain/repositories/cleaner_repository.dart';
 import 'package:developer_cleaner/domain/usecases/clean_rules.dart';
 import 'package:developer_cleaner/domain/usecases/scan_rules.dart';
 import 'package:developer_cleaner/presentation/cubit/cleaner_cubit.dart';
 import 'package:developer_cleaner/presentation/cubit/cleaner_state.dart';
+import 'package:developer_cleaner/presentation/l10n/app_lang.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -149,6 +151,27 @@ void main() {
       expect(c.state.outcome!.totalBytes, 0);
       verify(() => repo.clean(any(), dryRun: true)).called(1);
       verifyNever(() => repo.clean(any(), dryRun: false));
+    },
+  );
+
+  blocTest<CleanerCubit, CleanerState>(
+    'restart returns to idle, clears the run, keeps language, reloads disk',
+    build: build,
+    seed: () => const CleanerState(
+      phase: CleanerPhase.done,
+      lang: AppLang.en,
+      selectedRuleIds: {'gradle'},
+      dangerConfirmed: true,
+      outcome: CleanOutcome(freedBytes: 1, inTrashBytes: 2),
+    ),
+    act: (c) => c.restart(),
+    verify: (c) {
+      expect(c.state.phase, CleanerPhase.idle);
+      expect(c.state.lang, AppLang.en);
+      expect(c.state.selectedRuleIds, isEmpty);
+      expect(c.state.dangerConfirmed, isFalse);
+      expect(c.state.outcome, isNull);
+      expect(c.state.disk, _disk);
     },
   );
 

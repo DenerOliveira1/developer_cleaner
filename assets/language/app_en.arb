@@ -65,6 +65,11 @@
   "emptyTrash": "Empty Trash",
 
   "genericError": "Something went wrong.",
+  "scanAgain": "Scan again",
+  "cleanFailures": "{count, plural, =1{1 rule could not be cleaned} other{{count} rules could not be cleaned}}",
+  "@cleanFailures": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "badge": "{safety, select, safe{SAFE} confirm{CONFIRM} danger{DANGER} other{}}",
   "@badge": {

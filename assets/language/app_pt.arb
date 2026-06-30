@@ -47,6 +47,8 @@
   "emptyTrash": "Esvaziar Lixeira",
 
   "genericError": "Algo deu errado.",
+  "scanAgain": "Escanear novamente",
+  "cleanFailures": "{count, plural, =1{1 regra não pôde ser limpa} other{{count} regras não puderam ser limpas}}",
 
   "badge": "{safety, select, safe{SEGURO} confirm{CONFIRMAR} danger{PERIGO} other{}}",
 

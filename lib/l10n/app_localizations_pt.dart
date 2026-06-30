@@ -139,6 +139,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get genericError => 'Algo deu errado.';
 
   @override
+  String get scanAgain => 'Escanear novamente';
+
+  @override
+  String cleanFailures(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regras não puderam ser limpas',
+      one: '1 regra não pôde ser limpa',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String badge(String safety) {
     String _temp0 = intl.Intl.selectLogic(safety, {
       'safe': 'SEGURO',
