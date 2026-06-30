@@ -127,12 +127,11 @@ class _CleanerPageState extends State<CleanerPage>
   Widget _idle(BuildContext context, CleanerState s, AppLocalizations str) {
     final disk = s.disk;
     if (disk == null) {
-      return const Center(
-        child: SizedBox(
-          width: 26,
-          height: 26,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
-        ),
+      return _DiskLoading(
+        label: str.readingDisk,
+        progress: s.diskProgress,
+        path: s.diskScanPath,
+        reduced: _reduced,
       );
     }
     final segments = [
@@ -833,6 +832,137 @@ class _EmptyTrashButton extends StatelessWidget {
             style: AppText.ui(13.5,
                 weight: FontWeight.w600,
                 color: enabled ? AppColors.dangerBright : AppColors.faintest2)),
+      ),
+    );
+  }
+}
+
+/// Idle loading readout while the disk breakdown (`df` + `du`) runs. Replaces
+/// the bare spinner with a real percentage, a "reading disk" message, and the
+/// path being measured. Determinate bar → honors reduced-motion (no spinner).
+///
+/// The kicker's trailing dots cycle (1→2→3) as a constant "still working" pulse
+/// — important because a single `du` can stall the percentage for seconds. The
+/// dots animate independently of progress, so the user sees life even when the
+/// bar is momentarily static. Reduced-motion shows the full ellipsis, no pulse.
+class _DiskLoading extends StatefulWidget {
+  final String label;
+  final double progress; // 0..1
+  final String? path;
+  final bool reduced;
+  const _DiskLoading(
+      {required this.label,
+      required this.progress,
+      required this.path,
+      required this.reduced});
+
+  @override
+  State<_DiskLoading> createState() => _DiskLoadingState();
+}
+
+class _DiskLoadingState extends State<_DiskLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1400))
+    ..repeat();
+
+  /// Label without its trailing ellipsis ("…" or "...") so the dots can pulse.
+  String get _base {
+    var s = widget.label.trimRight();
+    if (s.endsWith('…')) s = s.substring(0, s.length - 1);
+    while (s.endsWith('.')) {
+      s = s.substring(0, s.length - 1);
+    }
+    return s.trimRight().toUpperCase();
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = widget.progress.clamp(0.0, 1.0);
+    final pct = (value * 100).round();
+    final kicker =
+        AppText.mono(11, letterSpacing: 2, color: AppColors.faintest);
+    return Center(
+      child: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.reduced)
+              Text('$_base…', style: kicker)
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_base, style: kicker),
+                  // 3 fixed-width dots; the active count cycles 1→2→3, the rest
+                  // sit dimmed so the row never reflows.
+                  AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (_, _) {
+                      final active = (_pulse.value * 3).floor() % 3 + 1; // 1..3
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < 3; i++)
+                            Text('.',
+                                style: kicker.copyWith(
+                                    color: i < active
+                                        ? AppColors.faint
+                                        : AppColors.faintest3)),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('$pct',
+                    style: AppText.space(72,
+                        wght: 700,
+                        letterSpacing: -2.4,
+                        color: AppColors.heroInk)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Text('%',
+                      style: AppText.space(28,
+                          wght: 600, color: AppColors.accentMono)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 5,
+                backgroundColor: AppColors.divider,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 16,
+              child: Text(
+                widget.path ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.mono(11.5, color: AppColors.faintest),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

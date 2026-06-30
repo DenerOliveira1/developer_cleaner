@@ -11,8 +11,10 @@ abstract class CleanerRepository {
   /// Executes a rule. [dryRun] performs no side effect (spec §9.3).
   Future<void> clean(CleanupRule rule, {bool dryRun = false});
 
-  /// Whole-disk usage + breakdown for the gauge.
-  Future<DiskStats> diskStats();
+  /// Whole-disk usage + breakdown for the gauge. [onProgress] reports the
+  /// breakdown progress as `(fraction 0..1, path being measured)`.
+  Future<DiskStats> diskStats(
+      {void Function(double progress, String? path)? onProgress});
 
   /// Free bytes on `/` — cheap (no `du`). For measuring space freed post-clean.
   Future<int> diskFreeBytes();

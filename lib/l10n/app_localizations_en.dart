@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get breakdown => 'Disk breakdown';
 
   @override
+  String get readingDisk => 'Reading disk…';
+
+  @override
   String get used => 'USED';
 
   @override

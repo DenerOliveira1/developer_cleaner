@@ -70,7 +70,8 @@ void main() {
 
   setUp(() {
     repo = MockCleanerRepository();
-    when(() => repo.diskStats()).thenAnswer((_) async => _disk);
+    when(() => repo.diskStats(onProgress: any(named: 'onProgress')))
+        .thenAnswer((_) async => _disk);
     when(() => repo.scan(any())).thenAnswer(
         (inv) async => _scanOf(inv.positionalArguments.first as CleanupRule));
     when(() => repo.clean(any(), dryRun: any(named: 'dryRun')))
@@ -214,6 +215,31 @@ void main() {
       expect(c.state.disk, _disk);
     },
   );
+
+  test('init reports disk-read progress and the path being measured', () async {
+    final cubit = build();
+    // emit() updates `state` synchronously, so the callback's effect is
+    // observable on cubit.state right after each tick.
+    when(() => repo.diskStats(onProgress: any(named: 'onProgress')))
+        .thenAnswer((inv) async {
+      final cb = inv.namedArguments[#onProgress]
+          as void Function(double, String?)?;
+      cb?.call(0.2, '/Library/Developer');
+      expect(cubit.state.diskProgress, 0.2);
+      expect(cubit.state.diskScanPath, '/Library/Developer');
+      cb?.call(0.6, '/Library/Caches');
+      expect(cubit.state.diskProgress, 0.6);
+      expect(cubit.state.diskScanPath, '/Library/Caches');
+      return _disk;
+    });
+
+    await cubit.init();
+
+    expect(cubit.state.disk, _disk);
+    expect(cubit.state.diskProgress, 1.0);
+    expect(cubit.state.diskScanPath, isNull);
+    await cubit.close();
+  });
 
   test('emptyTrash reports observed progress, then completes at 100%', () async {
     final cubit = CleanerCubit(

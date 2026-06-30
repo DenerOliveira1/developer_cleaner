@@ -2,6 +2,7 @@
   "@@locale": "pt",
 
   "breakdown": "Detalhamento do disco",
+  "readingDisk": "Lendo o disco…",
   "used": "USADO",
   "diskSub": "{free} livres · {total} no total",
   "reclaimRest": "recuperáveis de lixo de dev",

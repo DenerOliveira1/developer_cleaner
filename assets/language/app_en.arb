@@ -2,6 +2,7 @@
   "@@locale": "en",
 
   "breakdown": "Disk breakdown",
+  "readingDisk": "Reading disk…",
   "used": "USED",
   "diskSub": "{free} free · {total} total",
   "@diskSub": {

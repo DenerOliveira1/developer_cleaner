@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Disk breakdown'**
   String get breakdown;
 
+  /// No description provided for @readingDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading disk…'**
+  String get readingDisk;
+
   /// No description provided for @used.
   ///
   /// In en, this message translates to:

@@ -313,16 +313,47 @@ class CleanerEngine {
 
   /// Whole-disk stats for the gauge: `df -k /` for total/free, plus a `du`
   /// breakdown over anchor directories mapped to the design's 6 categories.
-  Future<DiskStats> diskStats() async {
-    final (total, free) = await _dfTotalFree();
+  ///
+  /// [onProgress] reports real progress across the 5 steps (the fast `df` plus
+  /// the 4 slow `du` passes) as `(fraction 0..1, path being measured)` — the
+  /// path is `null` for the initial `df` and the final tick. Drives the Idle
+  /// loading readout.
+  Future<DiskStats> diskStats({
+    void Function(double progress, String? path)? onProgress,
+  }) async {
+    const steps = 5; // df + 4× du
+    var done = 0;
+    void report(String? path) => onProgress?.call(done / steps, path);
 
-    final xcode = await du([expandHome('~/Library/Developer')]);
-    final caches = await du([expandHome('~/Library/Caches')]);
-    final androidSdk = await du([expandHome('~/Library/Android/sdk')]);
-    final appSupport = await du([
+    final devPath = expandHome('~/Library/Developer');
+    final cachesPath = expandHome('~/Library/Caches');
+    final sdkPath = expandHome('~/Library/Android/sdk');
+    final appSupportPaths = [
       expandHome('~/Library/Application Support/JetBrains'),
       expandHome('~/Library/Application Support/Google'),
-    ]);
+    ];
+
+    report(null);
+    final (total, free) = await _dfTotalFree();
+    done++;
+
+    report(devPath);
+    final xcode = await du([devPath]);
+    done++;
+
+    report(cachesPath);
+    final caches = await du([cachesPath]);
+    done++;
+
+    report(sdkPath);
+    final androidSdk = await du([sdkPath]);
+    done++;
+
+    report(appSupportPaths.first);
+    final appSupport = await du(appSupportPaths);
+    done++;
+
+    report(null); // 100%
     final used = total - free;
     final other =
         (used - xcode - caches - androidSdk - appSupport).clamp(0, used);

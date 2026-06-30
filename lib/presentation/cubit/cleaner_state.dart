@@ -25,6 +25,10 @@ class CleanerState extends Equatable {
   final Set<String> selectedRuleIds;
   final String? expandedId;
 
+  // Idle disk-stats loading progress (the `df` + `du` breakdown on startup).
+  final double diskProgress; // 0..1
+  final String? diskScanPath; // path currently being measured
+
   // Scanning progress.
   final double scanProgress; // 0..1
   final String? scanningRuleId;
@@ -53,6 +57,8 @@ class CleanerState extends Equatable {
     this.results = const [],
     this.selectedRuleIds = const {},
     this.expandedId,
+    this.diskProgress = 0,
+    this.diskScanPath,
     this.scanProgress = 0,
     this.scanningRuleId,
     this.cleanIndex = 0,
@@ -106,6 +112,8 @@ class CleanerState extends Equatable {
     List<ScanResult>? results,
     Set<String>? selectedRuleIds,
     Object? expandedId = _undef,
+    double? diskProgress,
+    Object? diskScanPath = _undef,
     double? scanProgress,
     String? scanningRuleId,
     int? cleanIndex,
@@ -127,6 +135,10 @@ class CleanerState extends Equatable {
       selectedRuleIds: selectedRuleIds ?? this.selectedRuleIds,
       expandedId:
           identical(expandedId, _undef) ? this.expandedId : expandedId as String?,
+      diskProgress: diskProgress ?? this.diskProgress,
+      diskScanPath: identical(diskScanPath, _undef)
+          ? this.diskScanPath
+          : diskScanPath as String?,
       scanProgress: scanProgress ?? this.scanProgress,
       scanningRuleId: scanningRuleId ?? this.scanningRuleId,
       cleanIndex: cleanIndex ?? this.cleanIndex,
@@ -150,6 +162,8 @@ class CleanerState extends Equatable {
         results,
         selectedRuleIds,
         expandedId,
+        diskProgress,
+        diskScanPath,
         scanProgress,
         scanningRuleId,
         cleanIndex,

@@ -32,11 +32,17 @@ class CleanerCubit extends Cubit<CleanerState> {
         _emptyTrashPollInterval = emptyTrashPollInterval,
         super(const CleanerState());
 
-  /// Loads the disk gauge on the Idle screen.
+  /// Loads the disk gauge on the Idle screen, reporting real progress while the
+  /// `du` breakdown runs so the loading readout shows a percentage + the path
+  /// being measured (instead of a bare spinner).
   Future<void> init() async {
+    emit(state.copyWith(diskProgress: 0, diskScanPath: null, error: null));
     try {
-      final disk = await _repository.diskStats();
-      emit(state.copyWith(disk: disk));
+      final disk = await _repository.diskStats(
+        onProgress: (p, path) =>
+            emit(state.copyWith(diskProgress: p, diskScanPath: path)),
+      );
+      emit(state.copyWith(disk: disk, diskProgress: 1, diskScanPath: null));
     } catch (e) {
       emit(state.copyWith(phase: CleanerPhase.error, error: e.toString()));
     }
