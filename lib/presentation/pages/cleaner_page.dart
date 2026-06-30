@@ -152,7 +152,7 @@ class _CleanerPageState extends State<CleanerPage>
             child: AnimatedBuilder(
               animation: _gauge,
               builder: (_, _) => DiskGauge(
-                size: 336,
+                size: 370,
                 segments: segments,
                 total: disk.totalBytes.toDouble(),
                 progress: _gauge.value,
@@ -284,7 +284,7 @@ class _CleanerPageState extends State<CleanerPage>
           AnimatedBuilder(
             animation: _spin,
             builder: (_, _) => DiskGauge(
-              size: 300,
+              size: 330,
               segments: const [],
               total: 1,
               spinnerFraction: 140 / (2 * 3.14159 * 130),
@@ -497,7 +497,7 @@ class _CleanerPageState extends State<CleanerPage>
                 ];
                 final freeNow = free + freed * p;
                 return DiskGauge(
-                  size: 312,
+                  size: 343,
                   segments: segments,
                   total: total,
                   progress: 1,
