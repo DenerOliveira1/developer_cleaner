@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../l10n/app_lang.dart';
 import '../theme/app_colors.dart';
@@ -21,6 +22,12 @@ class TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          SvgPicture.asset(
+            'assets/icons/logo.svg',
+            width: 25,
+            height: 25,
+          ),
+          const SizedBox(width: 9),
           Text('DevDisk',
               style: AppText.space(14, wght: 600, color: AppColors.heroInk2)),
           const SizedBox(width: 8),
