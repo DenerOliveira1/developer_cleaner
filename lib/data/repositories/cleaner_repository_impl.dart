@@ -22,5 +22,8 @@ class CleanerRepositoryImpl implements CleanerRepository {
   Future<int> diskFreeBytes() => _ds.diskFreeBytes();
 
   @override
+  Future<int> trashSizeBytes() => _ds.trashSizeBytes();
+
+  @override
   Future<void> emptyTrash() => _ds.emptyTrash();
 }

@@ -230,6 +230,12 @@ abstract class AppLocalizations {
   /// **'Empty Trash to free it for good'**
   String get emptyCta;
 
+  /// No description provided for @emptying.
+  ///
+  /// In en, this message translates to:
+  /// **'Emptying the Trash…'**
+  String get emptying;
+
   /// No description provided for @trashEmpty.
   ///
   /// In en, this message translates to:

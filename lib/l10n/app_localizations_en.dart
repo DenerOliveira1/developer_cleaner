@@ -81,6 +81,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyCta => 'Empty Trash to free it for good';
 
   @override
+  String get emptying => 'Emptying the Trash…';
+
+  @override
   String get trashEmpty => 'Trash is empty';
 
   @override

@@ -39,6 +39,7 @@
   "waiting": "waiting in Trash",
   "trashEmptiedLbl": "Trash emptied",
   "emptyCta": "Empty Trash to free it for good",
+  "emptying": "Emptying the Trash…",
   "trashEmpty": "Trash is empty",
   "recoverNote": "Trashed items are recoverable until you empty the Trash.",
 

@@ -17,5 +17,7 @@ class SystemCleanerDataSource {
 
   Future<int> diskFreeBytes() => _engine.diskFreeBytes();
 
+  Future<int> trashSizeBytes() => _engine.trashSizeBytes();
+
   Future<void> emptyTrash() => _engine.emptyTrash();
 }

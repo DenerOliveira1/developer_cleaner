@@ -15,15 +15,21 @@ class CleanerCubit extends Cubit<CleanerState> {
   final CleanerRepository _repository;
   final List<CleanupRule> _rules;
 
+  /// How often the Trash size is re-measured while emptying, to update the
+  /// progress. Injectable so tests can drive it without real-time waits.
+  final Duration _emptyTrashPollInterval;
+
   CleanerCubit({
     required ScanRules scanRules,
     required CleanRules cleanRules,
     required CleanerRepository repository,
     List<CleanupRule>? rules,
+    Duration emptyTrashPollInterval = const Duration(milliseconds: 350),
   })  : _scanRules = scanRules,
         _cleanRules = cleanRules,
         _repository = repository,
         _rules = rules ?? kRules,
+        _emptyTrashPollInterval = emptyTrashPollInterval,
         super(const CleanerState());
 
   /// Loads the disk gauge on the Idle screen.
@@ -156,12 +162,45 @@ class CleanerCubit extends Cubit<CleanerState> {
   }
 
   /// Empties the Trash — the one permanent action (behind the modal gate).
+  ///
+  /// Reports a real percentage: Finder's `empty trash` gives no progress, so we
+  /// measure the Trash size up front, then poll it while the deletion runs and
+  /// report the observed fraction removed. If the size can't be measured we
+  /// fall back to an indeterminate run (no percentage) — the deletion still
+  /// proceeds. Errors revert [emptyingTrash] so the CTA comes back.
   Future<void> emptyTrash() async {
+    emit(state.copyWith(
+        emptyingTrash: true, emptyTrashProgress: 0, error: null));
     try {
-      await _repository.emptyTrash();
-      emit(state.copyWith(trashEmptied: true));
+      var initial = 0;
+      try {
+        initial = await _repository.trashSizeBytes();
+      } catch (_) {
+        initial = 0; // can't measure → empty without a percentage
+      }
+
+      var done = false;
+      final op = _repository.emptyTrash().whenComplete(() => done = true);
+
+      if (initial > 0) {
+        while (!done) {
+          await Future<void>.delayed(_emptyTrashPollInterval);
+          if (done) break;
+          try {
+            final current = await _repository.trashSizeBytes();
+            final progress = ((initial - current) / initial).clamp(0.0, 0.99);
+            emit(state.copyWith(emptyTrashProgress: progress));
+          } catch (_) {
+            // A transient `du` failure shouldn't abort — keep waiting for op.
+          }
+        }
+      }
+
+      await op; // surface a Finder failure
+      emit(state.copyWith(
+          emptyingTrash: false, emptyTrashProgress: 1, trashEmptied: true));
     } catch (e) {
-      emit(state.copyWith(error: e.toString()));
+      emit(state.copyWith(emptyingTrash: false, error: e.toString()));
     }
   }
 }

@@ -82,6 +82,13 @@ class CleanerEngine {
     }
   }
 
+  /// Bytes currently sitting in the user's Trash (`~/.Trash`). Drives the
+  /// empty-Trash progress: as Finder deletes, this shrinks and we report the
+  /// observed fraction removed. A missing/empty Trash is 0 (idempotency).
+  /// Volume-level Trashes (`/Volumes/.../.Trashes`) are intentionally out of
+  /// scope — `du ~/.Trash` doesn't reach them.
+  Future<int> trashSizeBytes() async => du(['$_home/.Trash']);
+
   /// Empties the Trash. The one irreversible step in the app.
   Future<void> emptyTrash() async {
     final res = await _runner.run(

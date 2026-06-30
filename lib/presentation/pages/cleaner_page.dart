@@ -554,17 +554,21 @@ class _CleanerPageState extends State<CleanerPage>
                 const SizedBox(height: 20),
                 _trashSplit(str, freed, inTrash, s.trashEmptied),
                 const SizedBox(height: 16),
-                _EmptyTrashButton(
-                  label: s.trashEmptied ? str.trashEmpty : str.emptyCta,
-                  enabled: !s.trashEmptied && inTrash > 0,
-                  onTap: () async {
-                    final ok = await showEmptyTrashModal(context,
-                        str: str, sizeLabel: _hero(inTrash));
-                    if (ok && context.mounted) {
-                      context.read<CleanerCubit>().emptyTrash();
-                    }
-                  },
-                ),
+                if (s.emptyingTrash)
+                  _EmptyTrashProgress(
+                      label: str.emptying, progress: s.emptyTrashProgress)
+                else
+                  _EmptyTrashButton(
+                    label: s.trashEmptied ? str.trashEmpty : str.emptyCta,
+                    enabled: !s.trashEmptied && inTrash > 0,
+                    onTap: () async {
+                      final ok = await showEmptyTrashModal(context,
+                          str: str, sizeLabel: _hero(inTrash));
+                      if (ok && context.mounted) {
+                        context.read<CleanerCubit>().emptyTrash();
+                      }
+                    },
+                  ),
                 const SizedBox(height: 12),
                 Text(str.recoverNote,
                     style: AppText.mono(11.5, color: AppColors.faintest)),
@@ -829,6 +833,58 @@ class _EmptyTrashButton extends StatelessWidget {
             style: AppText.ui(13.5,
                 weight: FontWeight.w600,
                 color: enabled ? AppColors.dangerBright : AppColors.faintest2)),
+      ),
+    );
+  }
+}
+
+/// Replaces the Empty-Trash CTA while the Trash is being emptied. Shows a real
+/// percentage (observed fraction removed) over a determinate bar — determinate
+/// so it honors reduced-motion (no spinner; the value just jumps).
+class _EmptyTrashProgress extends StatelessWidget {
+  final String label;
+  final double progress; // 0..1
+  const _EmptyTrashProgress({required this.label, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final value = progress.clamp(0.0, 1.0);
+    final pct = (value * 100).round();
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.danger.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.36)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label,
+                  style: AppText.ui(12.5,
+                      weight: FontWeight.w600, color: AppColors.dangerBright)),
+              Text('$pct%',
+                  style: AppText.mono(12.5, color: AppColors.dangerBright)),
+            ],
+          ),
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 5,
+              backgroundColor: AppColors.danger.withValues(alpha: 0.14),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.dangerBright),
+            ),
+          ),
+        ],
       ),
     );
   }

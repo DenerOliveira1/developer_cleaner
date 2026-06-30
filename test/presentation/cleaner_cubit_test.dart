@@ -76,6 +76,7 @@ void main() {
     when(() => repo.clean(any(), dryRun: any(named: 'dryRun')))
         .thenAnswer((_) async {});
     when(() => repo.diskFreeBytes()).thenAnswer((_) async => 100);
+    when(() => repo.trashSizeBytes()).thenAnswer((_) async => 0);
     when(() => repo.emptyTrash()).thenAnswer((_) async {});
   });
 
@@ -211,6 +212,56 @@ void main() {
       expect(c.state.dangerConfirmed, isFalse);
       expect(c.state.outcome, isNull);
       expect(c.state.disk, _disk);
+    },
+  );
+
+  test('emptyTrash reports observed progress, then completes at 100%', () async {
+    final cubit = CleanerCubit(
+      scanRules: ScanRules(repo),
+      cleanRules: CleanRules(repo),
+      repository: repo,
+      rules: _rules,
+      emptyTrashPollInterval: const Duration(milliseconds: 3),
+    );
+    // First call = initial size; each poll returns a smaller Trash.
+    final sizes = [1000, 800, 500, 200, 0, 0, 0];
+    var i = 0;
+    when(() => repo.trashSizeBytes()).thenAnswer(
+        (_) async => sizes[i < sizes.length ? i++ : sizes.length - 1]);
+    // Emptying outlives a few poll ticks so progress can be observed.
+    when(() => repo.emptyTrash())
+        .thenAnswer((_) async => Future<void>.delayed(
+            const Duration(milliseconds: 25)));
+
+    final progresses = <double>[];
+    final sub = cubit.stream.listen((s) {
+      if (s.emptyingTrash) progresses.add(s.emptyTrashProgress);
+    });
+
+    await cubit.emptyTrash();
+    await sub.cancel();
+
+    expect(cubit.state.emptyingTrash, isFalse);
+    expect(cubit.state.trashEmptied, isTrue);
+    expect(cubit.state.emptyTrashProgress, 1.0);
+    // Saw at least one real intermediate fraction (never reaching 1 mid-run).
+    expect(progresses.any((p) => p > 0 && p < 1), isTrue);
+    await cubit.close();
+  });
+
+  blocTest<CleanerCubit, CleanerState>(
+    'emptyTrash surfaces an error and restores the CTA',
+    build: build,
+    setUp: () {
+      when(() => repo.trashSizeBytes()).thenAnswer((_) async => 0);
+      when(() => repo.emptyTrash())
+          .thenAnswer((_) async => throw const CleanerException('nope'));
+    },
+    act: (c) => c.emptyTrash(),
+    verify: (c) {
+      expect(c.state.emptyingTrash, isFalse);
+      expect(c.state.trashEmptied, isFalse);
+      expect(c.state.error, contains('nope'));
     },
   );
 

@@ -27,6 +27,7 @@
   "waiting": "aguardando na Lixeira",
   "trashEmptiedLbl": "Lixeira esvaziada",
   "emptyCta": "Esvaziar a Lixeira para liberar de vez",
+  "emptying": "Esvaziando a Lixeira…",
   "trashEmpty": "Lixeira vazia",
   "recoverNote": "Itens na Lixeira são recuperáveis até você esvaziá-la.",
 

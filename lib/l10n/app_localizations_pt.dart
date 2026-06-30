@@ -82,6 +82,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get emptyCta => 'Esvaziar a Lixeira para liberar de vez';
 
   @override
+  String get emptying => 'Esvaziando a Lixeira…';
+
+  @override
   String get trashEmpty => 'Lixeira vazia';
 
   @override

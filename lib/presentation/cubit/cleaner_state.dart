@@ -34,6 +34,11 @@ class CleanerState extends Equatable {
   final int cleanTotal;
   final String? cleaningRuleId;
 
+  // Empty-Trash progress (stays on the Done screen — only the CTA swaps for a
+  // progress bar). [emptyTrashProgress] is the observed fraction removed, 0..1.
+  final bool emptyingTrash;
+  final double emptyTrashProgress;
+
   // Flow gates / outcome.
   final bool dangerConfirmed;
   final bool trashEmptied;
@@ -53,6 +58,8 @@ class CleanerState extends Equatable {
     this.cleanIndex = 0,
     this.cleanTotal = 0,
     this.cleaningRuleId,
+    this.emptyingTrash = false,
+    this.emptyTrashProgress = 0,
     this.dangerConfirmed = false,
     this.trashEmptied = false,
     this.outcome,
@@ -104,6 +111,8 @@ class CleanerState extends Equatable {
     int? cleanIndex,
     int? cleanTotal,
     String? cleaningRuleId,
+    bool? emptyingTrash,
+    double? emptyTrashProgress,
     bool? dangerConfirmed,
     bool? trashEmptied,
     CleanOutcome? outcome,
@@ -123,6 +132,8 @@ class CleanerState extends Equatable {
       cleanIndex: cleanIndex ?? this.cleanIndex,
       cleanTotal: cleanTotal ?? this.cleanTotal,
       cleaningRuleId: cleaningRuleId ?? this.cleaningRuleId,
+      emptyingTrash: emptyingTrash ?? this.emptyingTrash,
+      emptyTrashProgress: emptyTrashProgress ?? this.emptyTrashProgress,
       dangerConfirmed: dangerConfirmed ?? this.dangerConfirmed,
       trashEmptied: trashEmptied ?? this.trashEmptied,
       outcome: outcome ?? this.outcome,
@@ -144,6 +155,8 @@ class CleanerState extends Equatable {
         cleanIndex,
         cleanTotal,
         cleaningRuleId,
+        emptyingTrash,
+        emptyTrashProgress,
         dangerConfirmed,
         trashEmptied,
         outcome,

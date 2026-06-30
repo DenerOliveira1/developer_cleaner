@@ -17,6 +17,10 @@ abstract class CleanerRepository {
   /// Free bytes on `/` — cheap (no `du`). For measuring space freed post-clean.
   Future<int> diskFreeBytes();
 
+  /// Bytes currently in the Trash. Polled during [emptyTrash] to report the
+  /// observed progress as Finder deletes.
+  Future<int> trashSizeBytes();
+
   /// Permanently empties the Trash — the one irreversible action.
   Future<void> emptyTrash();
 }
