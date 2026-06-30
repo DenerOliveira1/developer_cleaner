@@ -31,7 +31,7 @@ jobs:
   analyze-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.7
@@ -49,7 +49,7 @@ jobs:
       DEVDISK_SIGN_IDENTITY: ${{ secrets.DEVDISK_SIGN_IDENTITY }}
       DEVDISK_NOTARY_PROFILE: devdisk-notary
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
