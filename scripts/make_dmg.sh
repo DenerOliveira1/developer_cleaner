@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 # ============================================================
-# Empacota o DevDisk Cleaner num .dmg (macOS, fora da App Store),
-# assinado com Developer ID e notarizado pela Apple.
+# Packages DevDisk Cleaner into a .dmg (macOS, outside the App Store),
+# signed with a Developer ID and notarized by Apple.
 #
-# Uso:
-#   ./scripts/make_dmg.sh            # build + assina + DMG + notariza + staple
-#   ./scripts/make_dmg.sh --no-sign  # só build + DMG (sem assinar/notarizar)
+# Usage:
+#   ./scripts/make_dmg.sh            # build + sign + DMG + notarize + staple
+#   ./scripts/make_dmg.sh --no-sign  # build + DMG only (no signing/notarization)
 #
-# Requer: flutter, create-dmg, e (p/ assinar) o cert "Developer ID
-# Application" na Keychain + perfil do notarytool ($NOTARY_PROFILE).
-# Saída:  dist/DevDisk Cleaner.dmg
+# Signing config comes from the environment (so no personal identity is
+# committed):
+#   DEVDISK_SIGN_IDENTITY  e.g. "Developer ID Application: Your Name (TEAMID)"
+#   DEVDISK_NOTARY_PROFILE notarytool keychain profile name (default: devdisk-notary)
+#
+# Requires: flutter, create-dmg (brew install create-dmg), and — for signing —
+# a "Developer ID Application" cert in the keychain plus a stored notarytool
+# profile (xcrun notarytool store-credentials ...).
+# Output: dist/DevDisk Cleaner.dmg
 # ============================================================
 set -euo pipefail
 
@@ -19,8 +25,8 @@ RELEASE_DIR="build/macos/Build/Products/Release"
 DIST_DIR="dist"
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 
-SIGN_IDENTITY="Developer ID Application: Dener Oliveira (6DCF2LC242)"
-NOTARY_PROFILE="devdisk-notary"
+SIGN_IDENTITY="${DEVDISK_SIGN_IDENTITY:-}"
+NOTARY_PROFILE="${DEVDISK_NOTARY_PROFILE:-devdisk-notary}"
 ENTITLEMENTS="macos/Runner/Release.entitlements"
 
 DO_SIGN=true
@@ -28,12 +34,20 @@ DO_SIGN=true
 
 cd "$(dirname "$0")/.."
 
+if $DO_SIGN && [ -z "$SIGN_IDENTITY" ]; then
+  echo "❌ Signing requested but DEVDISK_SIGN_IDENTITY is not set."
+  echo "   export DEVDISK_SIGN_IDENTITY=\"Developer ID Application: Your Name (TEAMID)\""
+  echo "   (and store a notarytool profile named '\$DEVDISK_NOTARY_PROFILE')."
+  echo "   Or run with --no-sign for an unsigned local DMG."
+  exit 1
+fi
+
 echo "▶ flutter build macos --release"
 flutter build macos --release
-[ -d "$RELEASE_DIR/$APP_BUNDLE" ] || { echo "❌ não achei $APP_BUNDLE"; exit 1; }
+[ -d "$RELEASE_DIR/$APP_BUNDLE" ] || { echo "❌ missing $APP_BUNDLE"; exit 1; }
 
 if $DO_SIGN; then
-  echo "▶ codesign (Developer ID + hardened runtime)"
+  echo "▶ codesign the .app (Developer ID + hardened runtime)"
   codesign --deep --force --options runtime --timestamp \
     --entitlements "$ENTITLEMENTS" \
     --sign "$SIGN_IDENTITY" \
@@ -45,8 +59,8 @@ mkdir -p "$DIST_DIR"
 rm -f "$DMG_PATH"
 
 echo "▶ create-dmg"
-# create-dmg pode sair !=0 mesmo gerando o DMG (quirk do AppleScript); checamos
-# o arquivo no fim em vez de confiar no exit code.
+# create-dmg can exit non-zero even when it produced the DMG (an AppleScript
+# styling quirk), so we check the file afterwards instead of the exit code.
 set +e
 create-dmg \
   --volname "$APP_NAME" \
@@ -59,18 +73,18 @@ create-dmg \
   "$DMG_PATH" \
   "$RELEASE_DIR/$APP_BUNDLE"
 set -e
-[ -f "$DMG_PATH" ] || { echo "❌ falha ao gerar o DMG"; exit 1; }
+[ -f "$DMG_PATH" ] || { echo "❌ failed to create the DMG"; exit 1; }
 echo "✓ DMG: $DMG_PATH"
 
 if $DO_SIGN; then
-  echo "▶ codesign do DMG (p/ o próprio .dmg ter assinatura Developer ID)"
+  echo "▶ codesign the .dmg (so the disk image itself carries a Developer ID signature)"
   codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG_PATH"
-  echo "▶ notarytool submit (aguarda o resultado da Apple)…"
+  echo "▶ notarytool submit (waits for Apple's result)…"
   xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait
   echo "▶ stapler staple"
   xcrun stapler staple "$DMG_PATH"
-  echo "▶ validação Gatekeeper (informativa)"
+  echo "▶ Gatekeeper check (informational)"
   spctl -a -t open --context context:primary-signature -v "$DMG_PATH" \
-    || echo "  (aviso: spctl não avaliou via assinatura — o staple já foi validado)"
-  echo "✓ DMG assinado e notarizado: $DMG_PATH"
+    || echo "  (note: spctl could not assess by signature — the staple was already validated)"
+  echo "✓ Signed and notarized DMG: $DMG_PATH"
 fi
