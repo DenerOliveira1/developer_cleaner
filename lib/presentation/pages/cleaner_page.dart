@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/cleaner/clean_models.dart';
 import '../../core/util/byte_format.dart';
+import '../../domain/usecases/clean_rules.dart' show CleanFailure;
 import '../cubit/cleaner_cubit.dart';
 import '../../l10n/app_localizations.dart';
 import '../cubit/cleaner_state.dart';
@@ -36,6 +37,7 @@ class _CleanerPageState extends State<CleanerPage>
 
   bool _dryRun = false;
   bool _reduced = false;
+  bool _showFailures = false;
   CleanerPhase? _lastPhase;
   bool _gaugeShown = false;
 
@@ -73,6 +75,7 @@ class _CleanerPageState extends State<CleanerPage>
         if (!_reduced) _spin.repeat();
       case CleanerPhase.done:
         _spin.stop();
+        _showFailures = false;
         if (_reduced) {
           _gauge.value = 1;
           _reveal.value = 1;
@@ -567,18 +570,33 @@ class _CleanerPageState extends State<CleanerPage>
                     style: AppText.mono(11.5, color: AppColors.faintest)),
                 if (s.failures.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 14, color: AppColors.confirm),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(str.cleanFailures(s.failures.length),
-                            style:
-                                AppText.mono(11.5, color: AppColors.confirm)),
-                      ),
-                    ],
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _showFailures = !_showFailures),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 14, color: AppColors.confirm),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(str.cleanFailures(s.failures.length),
+                              style:
+                                  AppText.mono(11.5, color: AppColors.confirm)),
+                        ),
+                        Icon(
+                            _showFailures
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 16,
+                            color: AppColors.confirm),
+                      ],
+                    ),
                   ),
+                  if (_showFailures) ...[
+                    const SizedBox(height: 8),
+                    _FailureDetails(failures: s.failures, str: str),
+                  ],
                 ],
                 const SizedBox(height: 18),
                 GestureDetector(
@@ -811,6 +829,41 @@ class _EmptyTrashButton extends StatelessWidget {
             style: AppText.ui(13.5,
                 weight: FontWeight.w600,
                 color: enabled ? AppColors.dangerBright : AppColors.faintest2)),
+      ),
+    );
+  }
+}
+
+/// Per-rule failure details on the Done screen: the rule that failed and the
+/// raw engine/command error, so a silent failure becomes diagnosable.
+class _FailureDetails extends StatelessWidget {
+  final List<CleanFailure> failures;
+  final AppLocalizations str;
+  const _FailureDetails({required this.failures, required this.str});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.sunken,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.borderPreview),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < failures.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            Text(str.ruleName(failures[i].ruleId),
+                style: AppText.ui(12,
+                    weight: FontWeight.w600, color: AppColors.rowName)),
+            const SizedBox(height: 3),
+            Text(failures[i].message,
+                style: AppText.mono(11, color: AppColors.bodyDim, height: 1.4)),
+          ],
+        ],
       ),
     );
   }
