@@ -456,6 +456,32 @@ const List<CleanupRule> kRules = [
       ],
     ),
   ),
+  CleanupRule(
+    id: 'web',
+    label: 'React / Next.js — node_modules/.next/build',
+    description:
+        'node_modules e saídas de build web (.next, build, dist, out) de projetos React/Next.',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'package.json',
+      markerPattern: r'"(next|react)"',
+      artifactDirs: ['node_modules', '.next', 'build', 'dist', 'out'],
+    ),
+  ),
+  CleanupRule(
+    id: 'php',
+    label: 'PHP — vendor (Composer)',
+    description:
+        'Dependências do Composer (vendor/) de projetos PHP (recriáveis com composer install).',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'composer.json',
+      markerPattern: r'.', // composer.json presence already signals PHP
+      artifactDirs: ['vendor'],
+    ),
+  ),
 ];
 
 /// Common developer project roots scanned by the project-artifact rules. Only

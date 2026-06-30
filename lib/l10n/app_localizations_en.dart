@@ -191,6 +191,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'simruntime': 'iOS Simulator — old runtimes',
       'flutter': 'Flutter — build/.dart_tool',
       'react': 'React Native — node_modules/Pods/build',
+      'web': 'React / Next.js — node_modules/.next',
+      'php': 'PHP — vendor (Composer)',
       'other': '',
     });
     return '$_temp0';
@@ -216,6 +218,10 @@ class AppLocalizationsEn extends AppLocalizations {
           'build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).',
       'react':
           'node_modules, Pods and build outputs from your React Native projects (recreated with install/build).',
+      'web':
+          'node_modules and web build output (.next, build, dist, out) from React/Next projects.',
+      'php':
+          'Composer dependencies (vendor/) from PHP projects (recreated with composer install).',
       'other': '',
     });
     return '$_temp0';
