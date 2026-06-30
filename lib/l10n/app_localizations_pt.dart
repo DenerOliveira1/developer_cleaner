@@ -191,6 +191,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'docker': 'Docker — prune (sem volumes)',
       'simruntime': 'Simulador iOS — runtimes antigos',
       'flutter': 'Flutter — build/.dart_tool',
+      'react': 'React Native — node_modules/Pods/build',
       'other': '',
     });
     return '$_temp0';
@@ -214,6 +215,8 @@ class AppLocalizationsPt extends AppLocalizations {
           'Mantém só o iOS mais recente; remove os runtimes antigos do simulador. Irreversível.',
       'flutter':
           'build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).',
+      'react':
+          'node_modules, Pods e saídas de build dos projetos React Native (recriáveis com install/build).',
       'other': '',
     });
     return '$_temp0';

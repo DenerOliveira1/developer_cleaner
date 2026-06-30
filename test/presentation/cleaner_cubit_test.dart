@@ -38,7 +38,12 @@ const _flutter = CleanupRule(
   label: 'flutter',
   description: '',
   safety: Safety.confirm,
-  action: FlutterArtifacts(roots: ['/tmp/projects']),
+  action: ProjectArtifacts(
+    roots: ['/tmp/projects'],
+    markerFile: 'pubspec.yaml',
+    markerPattern: 'flutter',
+    artifactDirs: ['build', '.dart_tool'],
+  ),
 );
 const _rules = [_safe, _confirm, _danger];
 

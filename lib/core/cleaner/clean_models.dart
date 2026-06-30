@@ -47,19 +47,29 @@ class DeleteSimRuntimes extends CleanAction {
   const DeleteSimRuntimes({this.keep = 1});
 }
 
-/// Discover Flutter projects under [roots] (by `pubspec.yaml`) and trash their
-/// recreatable build artifacts (`build/`, `.dart_tool/`). Reversible — same
-/// disk reclaim as `flutter clean`, but to the Trash.
-class FlutterArtifacts extends CleanAction {
+/// Discover projects under [roots] — a project is a dir containing
+/// [markerFile] whose content matches [markerPattern] — and trash each one's
+/// recreatable [artifactDirs] (relative paths, may be nested like `ios/Pods`).
+/// Reversible (Trash). Powers both Flutter and React Native rules.
+class ProjectArtifacts extends CleanAction {
   final List<String> roots;
+  final String markerFile; // e.g. 'pubspec.yaml' | 'package.json'
+  final String markerPattern; // regex validating the marker's content
+  final List<String> artifactDirs; // relative dirs to trash
   final int maxDepth;
-  const FlutterArtifacts({required this.roots, this.maxDepth = 4});
+  const ProjectArtifacts({
+    required this.roots,
+    required this.markerFile,
+    required this.markerPattern,
+    required this.artifactDirs,
+    this.maxDepth = 4,
+  });
 }
 
 /// Whether a rule's effect can be undone. File moves (Trash) are reversible;
 /// external commands (`simctl`/`docker`/`brew`) and runtime deletions are not.
 bool isReversibleAction(CleanAction action) =>
-    action is TrashPaths || action is KeepLatest || action is FlutterArtifacts;
+    action is TrashPaths || action is KeepLatest || action is ProjectArtifacts;
 
 /// A declarative cleanup rule. [label]/[description] are defaults for the CLI
 /// and debugging; the UI overrides them per-language via the i18n dictionary

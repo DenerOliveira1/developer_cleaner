@@ -359,13 +359,13 @@ abstract class AppLocalizations {
   /// No description provided for @ruleName.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} simruntime{iOS Simulator — old runtimes} flutter{Flutter — build/.dart_tool} other{}}'**
+  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} simruntime{iOS Simulator — old runtimes} flutter{Flutter — build/.dart_tool} react{React Native — node_modules/Pods/build} other{}}'**
   String ruleName(String ruleId);
 
   /// No description provided for @ruleDesc.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} simruntime{Keeps only the latest iOS; removes old simulator runtimes. Irreversible.} flutter{build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).} other{}}'**
+  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} simruntime{Keeps only the latest iOS; removes old simulator runtimes. Irreversible.} flutter{build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).} react{node_modules, Pods and build outputs from your React Native projects (recreated with install/build).} other{}}'**
   String ruleDesc(String ruleId);
 }
 

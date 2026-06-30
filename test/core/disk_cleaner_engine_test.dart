@@ -180,39 +180,78 @@ void main() {
     expect(deletes.any((c) => c.$2.contains('UUID-265')), isFalse); // kept
   });
 
-  test('FlutterArtifacts discovers projects and trashes build/.dart_tool',
-      () async {
-    final runner = FakeProcessRunner();
-    final engine = CleanerEngine(runner: runner);
+  CleanupRule projectRule(ProjectArtifacts action) => CleanupRule(
+        id: 'proj',
+        label: 'proj',
+        description: '',
+        safety: Safety.confirm,
+        action: action,
+      );
 
-    // A Flutter project with build/ + .dart_tool/.
+  test('ProjectArtifacts (Flutter) discovers projects, ignores pure Dart',
+      () async {
+    final engine = CleanerEngine(runner: FakeProcessRunner());
+
     final app = Directory('${tmp.path}/app')..createSync();
-    File('${app.path}/pubspec.yaml')
-        .writeAsStringSync('name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
+    File('${app.path}/pubspec.yaml').writeAsStringSync(
+        'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
     Directory('${app.path}/build').createSync();
     Directory('${app.path}/.dart_tool').createSync();
     Directory('${app.path}/lib').createSync(); // not an artifact
 
-    // A pure Dart package (no flutter) — must be ignored.
     final pkg = Directory('${tmp.path}/pure')..createSync();
     File('${pkg.path}/pubspec.yaml').writeAsStringSync('name: pure\n');
     Directory('${pkg.path}/.dart_tool').createSync();
 
-    final rule = CleanupRule(
-      id: 'flutter',
-      label: 'flutter',
-      description: '',
-      safety: Safety.confirm,
-      action: FlutterArtifacts(roots: [tmp.path]),
-    );
+    final scan = await engine.scan(projectRule(ProjectArtifacts(
+      roots: [tmp.path],
+      markerFile: 'pubspec.yaml',
+      markerPattern: r'(^|\n)\s*(flutter:|sdk:\s*flutter)',
+      artifactDirs: const ['build', '.dart_tool'],
+    )));
+
+    expect(scan.targets,
+        containsAll(['${app.path}/build', '${app.path}/.dart_tool']));
+    expect(scan.targets, isNot(contains('${pkg.path}/.dart_tool')));
+  });
+
+  test('ProjectArtifacts (React Native) targets node_modules/Pods/build',
+      () async {
+    final runner = FakeProcessRunner();
+    final engine = CleanerEngine(runner: runner);
+
+    final app = Directory('${tmp.path}/rn')..createSync();
+    File('${app.path}/package.json').writeAsStringSync(
+        '{"name":"rn","dependencies":{"react-native":"0.74.0"}}');
+    Directory('${app.path}/node_modules').createSync();
+    Directory('${app.path}/ios/Pods').createSync(recursive: true);
+    Directory('${app.path}/android/.gradle').createSync(recursive: true);
+
+    // A plain Node package (no react-native/expo) — ignored.
+    final plain = Directory('${tmp.path}/node-only')..createSync();
+    File('${plain.path}/package.json').writeAsStringSync('{"name":"x"}');
+    Directory('${plain.path}/node_modules').createSync();
+
+    final rule = projectRule(ProjectArtifacts(
+      roots: [tmp.path],
+      markerFile: 'package.json',
+      markerPattern: r'"(react-native|expo)"',
+      artifactDirs: const [
+        'node_modules',
+        'ios/Pods',
+        'android/.gradle',
+      ],
+    ));
 
     final scan = await engine.scan(rule);
-    expect(scan.targets, containsAll([
-      '${app.path}/build',
-      '${app.path}/.dart_tool',
-    ]));
-    // The pure Dart package's .dart_tool is not targeted.
-    expect(scan.targets, isNot(contains('${pkg.path}/.dart_tool')));
+    expect(
+        scan.targets,
+        containsAll([
+          '${app.path}/node_modules',
+          '${app.path}/ios/Pods',
+          '${app.path}/android/.gradle',
+        ]));
+    expect(scan.targets, isNot(contains('${plain.path}/node_modules')));
 
     await engine.clean(rule);
     expect(runner.calls.where((c) => c.$1 == 'osascript').length, greaterThan(0));

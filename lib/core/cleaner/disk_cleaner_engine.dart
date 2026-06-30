@@ -160,11 +160,13 @@ class CleanerEngine {
     'build', '.dart_tool', 'node_modules', 'Pods', '.git', '.fvm', '.symlinks',
   };
 
-  /// Finds `build/` and `.dart_tool/` dirs of Flutter projects under [roots]
-  /// (a project = a dir with a `pubspec.yaml` that mentions Flutter), walking
-  /// at most [maxDepth] levels and pruning [_pruneDirs].
-  List<String> _findFlutterArtifacts(List<String> roots, int maxDepth) {
+  /// Finds the recreatable artifact dirs of projects under [a.roots]: a project
+  /// is a dir with [a.markerFile] matching [a.markerPattern]; its existing
+  /// [a.artifactDirs] become targets. Walks at most [a.maxDepth] levels,
+  /// pruning [_pruneDirs] (so it never descends into node_modules/Pods/etc.).
+  List<String> _findProjectArtifacts(ProjectArtifacts a) {
     final out = <String>[];
+    final pattern = RegExp(a.markerPattern);
 
     void walk(Directory dir, int depth) {
       List<FileSystemEntity> entries;
@@ -174,20 +176,19 @@ class CleanerEngine {
         return; // unreadable dir — skip
       }
 
-      final pubspec = File('${dir.path}/pubspec.yaml');
-      if (pubspec.existsSync()) {
+      final marker = File('${dir.path}/${a.markerFile}');
+      if (marker.existsSync()) {
         try {
-          final content = pubspec.readAsStringSync();
-          if (RegExp(r'(^|\n)\s*(flutter:|sdk:\s*flutter)').hasMatch(content)) {
-            for (final name in const ['build', '.dart_tool']) {
-              final d = Directory('${dir.path}/$name');
+          if (pattern.hasMatch(marker.readAsStringSync())) {
+            for (final rel in a.artifactDirs) {
+              final d = Directory('${dir.path}/$rel');
               if (d.existsSync()) out.add(d.path);
             }
           }
-        } catch (_) {/* ignore unreadable pubspec */}
+        } catch (_) {/* ignore unreadable marker */}
       }
 
-      if (depth >= maxDepth) return;
+      if (depth >= a.maxDepth) return;
       for (final e in entries) {
         if (e is Directory && !_pruneDirs.contains(e.path.split('/').last)) {
           walk(e, depth + 1);
@@ -195,8 +196,8 @@ class CleanerEngine {
       }
     }
 
-    for (final r in roots) {
-      final d = Directory(r);
+    for (final r in a.roots) {
+      final d = Directory(expandHome(r));
       if (d.existsSync()) walk(d, 0);
     }
     return out;
@@ -231,9 +232,8 @@ class CleanerEngine {
           targets: plan.labels,
           keepNote: plan.keepNote,
         );
-      case FlutterArtifacts(:final roots, :final maxDepth):
-        final targets =
-            _findFlutterArtifacts(roots.map(expandHome).toList(), maxDepth);
+      case ProjectArtifacts a:
+        final targets = _findProjectArtifacts(a);
         return ScanResult(rule: rule, bytes: await du(targets), targets: targets);
     }
   }
@@ -277,11 +277,9 @@ class CleanerEngine {
                 'Falha ao remover runtime $id — ${res.stderr}');
           }
         }
-      case FlutterArtifacts(:final roots, :final maxDepth):
-        final targets =
-            _findFlutterArtifacts(roots.map(expandHome).toList(), maxDepth);
+      case ProjectArtifacts a:
         if (dryRun) return;
-        await trashAll(targets); // reversible
+        await trashAll(_findProjectArtifacts(a)); // reversible
     }
   }
 
@@ -431,18 +429,47 @@ const List<CleanupRule> kRules = [
     description:
         'build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).',
     safety: Safety.confirm,
-    action: FlutterArtifacts(roots: [
-      '~/StudioProjects',
-      '~/IdeaProjects',
-      '~/AndroidStudioProjects',
-      '~/Projects',
-      '~/Documents',
-      '~/dev',
-      '~/development',
-      '~/code',
-      '~/src',
-    ]),
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'pubspec.yaml',
+      markerPattern: r'(^|\n)\s*(flutter:|sdk:\s*flutter)',
+      artifactDirs: ['build', '.dart_tool'],
+    ),
   ),
+  CleanupRule(
+    id: 'react',
+    label: 'React Native — node_modules/Pods/build',
+    description:
+        'node_modules, Pods e saídas de build dos projetos React Native (recriáveis com install/build).',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'package.json',
+      markerPattern: r'"(react-native|expo)"',
+      artifactDirs: [
+        'node_modules',
+        'ios/Pods',
+        'ios/build',
+        'android/build',
+        'android/app/build',
+        'android/.gradle',
+      ],
+    ),
+  ),
+];
+
+/// Common developer project roots scanned by the project-artifact rules. Only
+/// the ones that exist are walked.
+const List<String> kProjectRoots = [
+  '~/StudioProjects',
+  '~/IdeaProjects',
+  '~/AndroidStudioProjects',
+  '~/Projects',
+  '~/Documents',
+  '~/dev',
+  '~/development',
+  '~/code',
+  '~/src',
 ];
 
 /// CLI entry point. Scans all rules; `--apply` cleans the `safe` ones.
