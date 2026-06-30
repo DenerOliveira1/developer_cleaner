@@ -12,6 +12,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get breakdown => 'Detalhamento do disco';
 
   @override
+  String get readingDisk => 'Lendo o disco…';
+
+  @override
   String get used => 'USADO';
 
   @override
@@ -82,6 +85,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get emptyCta => 'Esvaziar a Lixeira para liberar de vez';
 
   @override
+  String get emptying => 'Esvaziando a Lixeira…';
+
+  @override
   String get trashEmpty => 'Lixeira vazia';
 
   @override
@@ -89,17 +95,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'Itens na Lixeira são recuperáveis até você esvaziá-la.';
 
   @override
-  String get dTitle => 'Remover versões antigas do Android NDK?';
+  String removeTitle(String name) {
+    return 'Remover $name?';
+  }
 
   @override
-  String get dBody1 => 'O NDK certo depende do ';
-
-  @override
-  String get dBody2 =>
-      ' dos seus projetos. Revise as versões abaixo antes de remover — a errada quebra builds nativos.';
-
-  @override
-  String get reviewed => 'Revisei as versões acima.';
+  String get reviewed => 'Revisei os itens acima.';
 
   @override
   String get cancel => 'Cancelar';
@@ -108,6 +109,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String moveTrash(String size) {
     return 'Mover $size para a Lixeira';
   }
+
+  @override
+  String get removePermanently => 'Remover permanentemente';
+
+  @override
+  String get permanentWarning => 'Permanente — não vai para a Lixeira.';
 
   @override
   String keeps(String version) {
@@ -137,6 +144,38 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get genericError => 'Algo deu errado.';
+
+  @override
+  String get dryRun => 'Dry-run';
+
+  @override
+  String get macosOnly => 'DevDisk Cleaner roda apenas no macOS.';
+
+  @override
+  String get errTrashMove => 'Falha ao mover para a Lixeira.';
+
+  @override
+  String get errEmptyTrash => 'Falha ao esvaziar a Lixeira.';
+
+  @override
+  String get errRemoveRuntime => 'Falha ao remover o runtime de simulador.';
+
+  @override
+  String get errRunCommand => 'O comando falhou.';
+
+  @override
+  String get scanAgain => 'Escanear novamente';
+
+  @override
+  String cleanFailures(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regras não puderam ser limpas',
+      one: '1 regra não pôde ser limpa',
+    );
+    return '$_temp0';
+  }
 
   @override
   String badge(String safety) {
@@ -174,6 +213,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'studio': 'Android Studio — versões antigas',
       'ndk': 'Android NDK — versões antigas',
       'docker': 'Docker — prune (sem volumes)',
+      'simruntime': 'Simulador iOS — runtimes antigos',
+      'flutter': 'Flutter — build/.dart_tool',
+      'react': 'React Native — node_modules/Pods/build',
+      'web': 'React / Next.js — node_modules/.next',
+      'php': 'PHP — vendor (Composer)',
       'other': '',
     });
     return '$_temp0';
@@ -193,6 +237,16 @@ class AppLocalizationsPt extends AppLocalizations {
           'O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.',
       'docker':
           'Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.',
+      'simruntime':
+          'Mantém só o iOS mais recente; remove os runtimes antigos do simulador. Irreversível.',
+      'flutter':
+          'build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).',
+      'react':
+          'node_modules, Pods e saídas de build dos projetos React Native (recriáveis com install/build).',
+      'web':
+          'node_modules e saídas de build web (.next, build, dist, out) de projetos React/Next.',
+      'php':
+          'Dependências do Composer (vendor/) de projetos PHP (recriáveis com composer install).',
       'other': '',
     });
     return '$_temp0';

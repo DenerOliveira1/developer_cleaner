@@ -1,11 +1,14 @@
 import '../entities/cleanup_rule.dart';
 import '../repositories/cleaner_repository.dart';
 
-/// A rule that failed during a cleanup run.
+/// A rule that failed during a cleanup run. [code] identifies the failure for
+/// localization (null = an unexpected/non-engine error); [detail] is the raw,
+/// non-localized diagnostic (path / command stderr).
 class CleanFailure {
   final String ruleId;
-  final String message;
-  const CleanFailure(this.ruleId, this.message);
+  final CleanerErrorCode? code;
+  final String? detail;
+  const CleanFailure(this.ruleId, {this.code, this.detail});
 }
 
 /// Cleans the selected rules in order. A failure in one rule is recorded and
@@ -26,7 +29,9 @@ class CleanRules {
       try {
         await _repo.clean(rules[i], dryRun: dryRun);
       } catch (e) {
-        failures.add(CleanFailure(rules[i].id, e.toString()));
+        failures.add(e is CleanerException
+            ? CleanFailure(rules[i].id, code: e.code, detail: e.detail)
+            : CleanFailure(rules[i].id, detail: e.toString()));
       }
     }
     return failures;

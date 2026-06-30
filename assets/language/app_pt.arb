@@ -2,6 +2,7 @@
   "@@locale": "pt",
 
   "breakdown": "Detalhamento do disco",
+  "readingDisk": "Lendo o disco…",
   "used": "USADO",
   "diskSub": "{free} livres · {total} no total",
   "reclaimRest": "recuperáveis de lixo de dev",
@@ -27,15 +28,16 @@
   "waiting": "aguardando na Lixeira",
   "trashEmptiedLbl": "Lixeira esvaziada",
   "emptyCta": "Esvaziar a Lixeira para liberar de vez",
+  "emptying": "Esvaziando a Lixeira…",
   "trashEmpty": "Lixeira vazia",
   "recoverNote": "Itens na Lixeira são recuperáveis até você esvaziá-la.",
 
-  "dTitle": "Remover versões antigas do Android NDK?",
-  "dBody1": "O NDK certo depende do ",
-  "dBody2": " dos seus projetos. Revise as versões abaixo antes de remover — a errada quebra builds nativos.",
-  "reviewed": "Revisei as versões acima.",
+  "removeTitle": "Remover {name}?",
+  "reviewed": "Revisei os itens acima.",
   "cancel": "Cancelar",
   "moveTrash": "Mover {size} para a Lixeira",
+  "removePermanently": "Remover permanentemente",
+  "permanentWarning": "Permanente — não vai para a Lixeira.",
   "keeps": "Mantém {version}",
 
   "eTitle": "Esvaziar a Lixeira?",
@@ -47,12 +49,20 @@
   "emptyTrash": "Esvaziar Lixeira",
 
   "genericError": "Algo deu errado.",
+  "dryRun": "Dry-run",
+  "macosOnly": "DevDisk Cleaner roda apenas no macOS.",
+  "errTrashMove": "Falha ao mover para a Lixeira.",
+  "errEmptyTrash": "Falha ao esvaziar a Lixeira.",
+  "errRemoveRuntime": "Falha ao remover o runtime de simulador.",
+  "errRunCommand": "O comando falhou.",
+  "scanAgain": "Escanear novamente",
+  "cleanFailures": "{count, plural, =1{1 regra não pôde ser limpa} other{{count} regras não puderam ser limpas}}",
 
   "badge": "{safety, select, safe{SEGURO} confirm{CONFIRMAR} danger{PERIGO} other{}}",
 
   "category": "{key, select, xcode{Xcode / Simuladores} caches{Caches} androidSdk{Android SDK} appSupport{Suporte de apps (IDEs)} free{Livre} other{Outros / Sistema}}",
 
-  "ruleName": "{ruleId, select, derived{Xcode DerivedData} simun{Simuladores indisponíveis} coresim{Caches do CoreSimulator} gradle{Caches do Gradle} brew{Limpeza do Homebrew} intellij{IntelliJ — versões antigas} studio{Android Studio — versões antigas} ndk{Android NDK — versões antigas} docker{Docker — prune (sem volumes)} other{}}",
+  "ruleName": "{ruleId, select, derived{Xcode DerivedData} simun{Simuladores indisponíveis} coresim{Caches do CoreSimulator} gradle{Caches do Gradle} brew{Limpeza do Homebrew} intellij{IntelliJ — versões antigas} studio{Android Studio — versões antigas} ndk{Android NDK — versões antigas} docker{Docker — prune (sem volumes)} simruntime{Simulador iOS — runtimes antigos} flutter{Flutter — build/.dart_tool} react{React Native — node_modules/Pods/build} web{React / Next.js — node_modules/.next} php{PHP — vendor (Composer)} other{}}",
 
-  "ruleDesc": "{ruleId, select, derived{Intermediários de build que o Xcode recria no próximo build.} simun{Runtimes de simulador sem suporte no seu Xcode.} coresim{Dados de simulador em cache e snapshots de dispositivos.} gradle{Dependências baixadas que o Gradle rebaixa quando preciso.} brew{Downloads antigos e versões obsoletas de fórmulas.} intellij{Caches e plugins de versões da IDE que você não usa mais.} studio{Caches de versões do Android Studio que você já substituiu.} ndk{O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.} docker{Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.} other{}}"
+  "ruleDesc": "{ruleId, select, derived{Intermediários de build que o Xcode recria no próximo build.} simun{Runtimes de simulador sem suporte no seu Xcode.} coresim{Dados de simulador em cache e snapshots de dispositivos.} gradle{Dependências baixadas que o Gradle rebaixa quando preciso.} brew{Downloads antigos e versões obsoletas de fórmulas.} intellij{Caches e plugins de versões da IDE que você não usa mais.} studio{Caches de versões do Android Studio que você já substituiu.} ndk{O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.} docker{Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.} simruntime{Mantém só o iOS mais recente; remove os runtimes antigos do simulador. Irreversível.} flutter{build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).} react{node_modules, Pods e saídas de build dos projetos React Native (recriáveis com install/build).} web{node_modules e saídas de build web (.next, build, dist, out) de projetos React/Next.} php{Dependências do Composer (vendor/) de projetos PHP (recriáveis com composer install).} other{}}"
 }

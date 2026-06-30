@@ -17,7 +17,7 @@ Future<bool> showEmptyTrashModal(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'empty',
-    barrierColor: const Color(0xA8070609),
+    barrierColor: AppColors.scrim,
     pageBuilder: (_, _, _) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, _, _) => BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
@@ -49,7 +49,7 @@ class _EmptyCard extends StatelessWidget {
           border: Border.all(color: AppColors.borderModal),
           boxShadow: const [
             BoxShadow(
-                color: Color(0xCC000000),
+                color: AppColors.modalShadow,
                 blurRadius: 90,
                 offset: Offset(0, 40)),
           ],

@@ -25,6 +25,10 @@ class CleanerState extends Equatable {
   final Set<String> selectedRuleIds;
   final String? expandedId;
 
+  // Idle disk-stats loading progress (the `df` + `du` breakdown on startup).
+  final double diskProgress; // 0..1
+  final String? diskScanPath; // path currently being measured
+
   // Scanning progress.
   final double scanProgress; // 0..1
   final String? scanningRuleId;
@@ -34,12 +38,18 @@ class CleanerState extends Equatable {
   final int cleanTotal;
   final String? cleaningRuleId;
 
+  // Empty-Trash progress (stays on the Done screen — only the CTA swaps for a
+  // progress bar). [emptyTrashProgress] is the observed fraction removed, 0..1.
+  final bool emptyingTrash;
+  final double emptyTrashProgress;
+
   // Flow gates / outcome.
   final bool dangerConfirmed;
   final bool trashEmptied;
   final CleanOutcome? outcome;
   final List<CleanFailure> failures;
-  final String? error;
+  final String? error; // raw diagnostic detail (non-localized)
+  final CleanerErrorCode? errorCode; // null = generic/unknown error
 
   const CleanerState({
     this.phase = CleanerPhase.idle,
@@ -48,16 +58,21 @@ class CleanerState extends Equatable {
     this.results = const [],
     this.selectedRuleIds = const {},
     this.expandedId,
+    this.diskProgress = 0,
+    this.diskScanPath,
     this.scanProgress = 0,
     this.scanningRuleId,
     this.cleanIndex = 0,
     this.cleanTotal = 0,
     this.cleaningRuleId,
+    this.emptyingTrash = false,
+    this.emptyTrashProgress = 0,
     this.dangerConfirmed = false,
     this.trashEmptied = false,
     this.outcome,
     this.failures = const [],
     this.error,
+    this.errorCode,
   });
 
   ScanResult? resultFor(String id) {
@@ -99,16 +114,21 @@ class CleanerState extends Equatable {
     List<ScanResult>? results,
     Set<String>? selectedRuleIds,
     Object? expandedId = _undef,
+    double? diskProgress,
+    Object? diskScanPath = _undef,
     double? scanProgress,
     String? scanningRuleId,
     int? cleanIndex,
     int? cleanTotal,
     String? cleaningRuleId,
+    bool? emptyingTrash,
+    double? emptyTrashProgress,
     bool? dangerConfirmed,
     bool? trashEmptied,
     CleanOutcome? outcome,
     List<CleanFailure>? failures,
     Object? error = _undef,
+    Object? errorCode = _undef,
   }) {
     return CleanerState(
       phase: phase ?? this.phase,
@@ -118,16 +138,25 @@ class CleanerState extends Equatable {
       selectedRuleIds: selectedRuleIds ?? this.selectedRuleIds,
       expandedId:
           identical(expandedId, _undef) ? this.expandedId : expandedId as String?,
+      diskProgress: diskProgress ?? this.diskProgress,
+      diskScanPath: identical(diskScanPath, _undef)
+          ? this.diskScanPath
+          : diskScanPath as String?,
       scanProgress: scanProgress ?? this.scanProgress,
       scanningRuleId: scanningRuleId ?? this.scanningRuleId,
       cleanIndex: cleanIndex ?? this.cleanIndex,
       cleanTotal: cleanTotal ?? this.cleanTotal,
       cleaningRuleId: cleaningRuleId ?? this.cleaningRuleId,
+      emptyingTrash: emptyingTrash ?? this.emptyingTrash,
+      emptyTrashProgress: emptyTrashProgress ?? this.emptyTrashProgress,
       dangerConfirmed: dangerConfirmed ?? this.dangerConfirmed,
       trashEmptied: trashEmptied ?? this.trashEmptied,
       outcome: outcome ?? this.outcome,
       failures: failures ?? this.failures,
       error: identical(error, _undef) ? this.error : error as String?,
+      errorCode: identical(errorCode, _undef)
+          ? this.errorCode
+          : errorCode as CleanerErrorCode?,
     );
   }
 
@@ -139,15 +168,20 @@ class CleanerState extends Equatable {
         results,
         selectedRuleIds,
         expandedId,
+        diskProgress,
+        diskScanPath,
         scanProgress,
         scanningRuleId,
         cleanIndex,
         cleanTotal,
         cleaningRuleId,
+        emptyingTrash,
+        emptyTrashProgress,
         dangerConfirmed,
         trashEmptied,
         outcome,
         failures,
         error,
+        errorCode,
       ];
 }

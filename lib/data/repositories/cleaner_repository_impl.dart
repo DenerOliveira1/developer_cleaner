@@ -16,10 +16,15 @@ class CleanerRepositoryImpl implements CleanerRepository {
       _ds.clean(rule, dryRun: dryRun);
 
   @override
-  Future<DiskStats> diskStats() => _ds.diskStats();
+  Future<DiskStats> diskStats(
+          {void Function(double progress, String? path)? onProgress}) =>
+      _ds.diskStats(onProgress: onProgress);
 
   @override
   Future<int> diskFreeBytes() => _ds.diskFreeBytes();
+
+  @override
+  Future<int> trashSizeBytes() => _ds.trashSizeBytes();
 
   @override
   Future<void> emptyTrash() => _ds.emptyTrash();

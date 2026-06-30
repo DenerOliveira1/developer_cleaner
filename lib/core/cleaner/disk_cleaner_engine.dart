@@ -5,6 +5,7 @@
 ///   dart run lib/core/cleaner/disk_cleaner_engine.dart --apply  # clean safe rules
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import '../process/process_runner.dart';
@@ -58,8 +59,8 @@ class CleanerEngine {
     final script = 'tell application "Finder" to delete POSIX file "$path"';
     final res = await _runner.run('osascript', ['-e', script]);
     if (res.exitCode != 0) {
-      throw CleanerException(
-          'Falha ao mover para a Lixeira: $path — ${res.stderr}');
+      throw CleanerException(CleanerErrorCode.trashMove,
+          detail: '$path — ${res.stderr}');
     }
   }
 
@@ -76,17 +77,26 @@ class CleanerEngine {
       final res = await _runner.run(
           'osascript', ['-e', 'tell application "Finder" to delete {$list}']);
       if (res.exitCode != 0) {
-        throw CleanerException('Falha ao mover para a Lixeira — ${res.stderr}');
+        throw CleanerException(CleanerErrorCode.trashMove,
+            detail: '${res.stderr}');
       }
     }
   }
+
+  /// Bytes currently sitting in the user's Trash (`~/.Trash`). Drives the
+  /// empty-Trash progress: as Finder deletes, this shrinks and we report the
+  /// observed fraction removed. A missing/empty Trash is 0 (idempotency).
+  /// Volume-level Trashes (`/Volumes/.../.Trashes`) are intentionally out of
+  /// scope — `du ~/.Trash` doesn't reach them.
+  Future<int> trashSizeBytes() async => du(['$_home/.Trash']);
 
   /// Empties the Trash. The one irreversible step in the app.
   Future<void> emptyTrash() async {
     final res = await _runner.run(
         'osascript', ['-e', 'tell application "Finder" to empty trash']);
     if (res.exitCode != 0) {
-      throw CleanerException('Falha ao esvaziar a Lixeira — ${res.stderr}');
+      throw CleanerException(CleanerErrorCode.emptyTrash,
+          detail: '${res.stderr}');
     }
   }
 
@@ -107,6 +117,99 @@ class CleanerEngine {
         ? null
         : kept.map((e) => e.path.split('/').last).join(', ');
     return (remove: remove, keepNote: keepNote);
+  }
+
+  /// Plan for [DeleteSimRuntimes]: keep the [keep] newest **deletable iOS**
+  /// simulator runtime disk images (by version), remove the rest.
+  ///
+  /// Uses `simctl runtime list -j` (a map keyed by image UUID) — that UUID is
+  /// what `simctl runtime delete` expects (the SimRuntime identifier does NOT
+  /// work), and the entries carry `sizeBytes` so no `du` is needed.
+  Future<({List<String> ids, List<String> labels, int bytes, String? keepNote})>
+      _simRuntimePlan(int keep) async {
+    final res = await _runner.run('xcrun', ['simctl', 'runtime', 'list', '-j']);
+    final out = (res.stdout as String?) ?? '';
+    if (out.trim().isEmpty) {
+      return (ids: <String>[], labels: <String>[], bytes: 0, keepNote: null);
+    }
+    final map = (jsonDecode(out) as Map).cast<String, dynamic>();
+    final runtimes = map.values
+        .cast<Map<String, dynamic>>()
+        .where((r) =>
+            r['platformIdentifier'] == 'com.apple.platform.iphonesimulator' &&
+            r['deletable'] == true)
+        .toList()
+      ..sort((a, b) =>
+          _compareVersions('${b['version']}', '${a['version']}')); // desc
+    final remove = runtimes.skip(keep).toList();
+    return (
+      ids: remove.map((r) => '${r['identifier']}').toList(), // image UUID
+      labels: remove.map((r) => 'iOS ${r['version']} (${r['build']})').toList(),
+      bytes: remove.fold<int>(
+          0, (s, r) => s + ((r['sizeBytes'] as num?)?.toInt() ?? 0)),
+      keepNote: runtimes.take(keep).map((r) => 'iOS ${r['version']}').join(', '),
+    );
+  }
+
+  /// Numeric dotted-version compare (`18.10` > `18.9`).
+  static int _compareVersions(String a, String b) {
+    final pa = a.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final pb = b.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    for (var i = 0; i < pa.length || i < pb.length; i++) {
+      final x = i < pa.length ? pa[i] : 0;
+      final y = i < pb.length ? pb[i] : 0;
+      if (x != y) return x.compareTo(y);
+    }
+    return 0;
+  }
+
+  /// Directory names never descended into while discovering Flutter projects
+  /// (heavy/irrelevant trees), mirroring the user's clean scripts.
+  static const _pruneDirs = {
+    'build', '.dart_tool', 'node_modules', 'Pods', '.git', '.fvm', '.symlinks',
+  };
+
+  /// Finds the recreatable artifact dirs of projects under [a.roots]: a project
+  /// is a dir with [a.markerFile] matching [a.markerPattern]; its existing
+  /// [a.artifactDirs] become targets. Walks at most [a.maxDepth] levels,
+  /// pruning [_pruneDirs] (so it never descends into node_modules/Pods/etc.).
+  List<String> _findProjectArtifacts(ProjectArtifacts a) {
+    final out = <String>[];
+    final pattern = RegExp(a.markerPattern);
+
+    void walk(Directory dir, int depth) {
+      List<FileSystemEntity> entries;
+      try {
+        entries = dir.listSync(followLinks: false);
+      } catch (_) {
+        return; // unreadable dir — skip
+      }
+
+      final marker = File('${dir.path}/${a.markerFile}');
+      if (marker.existsSync()) {
+        try {
+          if (pattern.hasMatch(marker.readAsStringSync())) {
+            for (final rel in a.artifactDirs) {
+              final d = Directory('${dir.path}/$rel');
+              if (d.existsSync()) out.add(d.path);
+            }
+          }
+        } catch (_) {/* ignore unreadable marker */}
+      }
+
+      if (depth >= a.maxDepth) return;
+      for (final e in entries) {
+        if (e is Directory && !_pruneDirs.contains(e.path.split('/').last)) {
+          walk(e, depth + 1);
+        }
+      }
+    }
+
+    for (final r in a.roots) {
+      final d = Directory(expandHome(r));
+      if (d.existsSync()) walk(d, 0);
+    }
+    return out;
   }
 
   /// Scans one rule: estimates reclaimable bytes and the affected paths.
@@ -130,6 +233,17 @@ class CleanerEngine {
           targets: plan.remove,
           keepNote: plan.keepNote,
         );
+      case DeleteSimRuntimes(:final keep):
+        final plan = await _simRuntimePlan(keep);
+        return ScanResult(
+          rule: rule,
+          bytes: plan.bytes, // from sizeBytes — fast and accurate
+          targets: plan.labels,
+          keepNote: plan.keepNote,
+        );
+      case ProjectArtifacts a:
+        final targets = _findProjectArtifacts(a);
+        return ScanResult(rule: rule, bytes: await du(targets), targets: targets);
     }
   }
 
@@ -152,13 +266,29 @@ class CleanerEngine {
         if (dryRun) return;
         final res = await _runner.run(executable, args);
         if (res.exitCode != 0) {
-          throw CleanerException(
-              'Comando falhou: $executable ${args.join(' ')} — ${res.stderr}');
+          throw CleanerException(CleanerErrorCode.runCommand,
+              detail: '$executable ${args.join(' ')} — ${res.stderr}');
         }
       case KeepLatest(:final parentDir, :final namePrefix, :final keep):
         final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep);
         if (dryRun) return;
         await trashAll(plan.remove);
+      case DeleteSimRuntimes(:final keep):
+        final plan = await _simRuntimePlan(keep);
+        if (dryRun) return;
+        // Irreversible: simctl runtime delete (no Trash). One per runtime so a
+        // single failure doesn't abort the rest.
+        for (final id in plan.ids) {
+          final res =
+              await _runner.run('xcrun', ['simctl', 'runtime', 'delete', id]);
+          if (res.exitCode != 0) {
+            throw CleanerException(CleanerErrorCode.removeRuntime,
+                detail: '$id — ${res.stderr}');
+          }
+        }
+      case ProjectArtifacts a:
+        if (dryRun) return;
+        await trashAll(_findProjectArtifacts(a)); // reversible
     }
   }
 
@@ -185,16 +315,47 @@ class CleanerEngine {
 
   /// Whole-disk stats for the gauge: `df -k /` for total/free, plus a `du`
   /// breakdown over anchor directories mapped to the design's 6 categories.
-  Future<DiskStats> diskStats() async {
-    final (total, free) = await _dfTotalFree();
+  ///
+  /// [onProgress] reports real progress across the 5 steps (the fast `df` plus
+  /// the 4 slow `du` passes) as `(fraction 0..1, path being measured)` — the
+  /// path is `null` for the initial `df` and the final tick. Drives the Idle
+  /// loading readout.
+  Future<DiskStats> diskStats({
+    void Function(double progress, String? path)? onProgress,
+  }) async {
+    const steps = 5; // df + 4× du
+    var done = 0;
+    void report(String? path) => onProgress?.call(done / steps, path);
 
-    final xcode = await du([expandHome('~/Library/Developer')]);
-    final caches = await du([expandHome('~/Library/Caches')]);
-    final androidSdk = await du([expandHome('~/Library/Android/sdk')]);
-    final appSupport = await du([
+    final devPath = expandHome('~/Library/Developer');
+    final cachesPath = expandHome('~/Library/Caches');
+    final sdkPath = expandHome('~/Library/Android/sdk');
+    final appSupportPaths = [
       expandHome('~/Library/Application Support/JetBrains'),
       expandHome('~/Library/Application Support/Google'),
-    ]);
+    ];
+
+    report(null);
+    final (total, free) = await _dfTotalFree();
+    done++;
+
+    report(devPath);
+    final xcode = await du([devPath]);
+    done++;
+
+    report(cachesPath);
+    final caches = await du([cachesPath]);
+    done++;
+
+    report(sdkPath);
+    final androidSdk = await du([sdkPath]);
+    done++;
+
+    report(appSupportPaths.first);
+    final appSupport = await du(appSupportPaths);
+    done++;
+
+    report(null); // 100%
     final used = total - free;
     final other =
         (used - xcode - caches - androidSdk - appSupport).clamp(0, used);
@@ -228,7 +389,8 @@ const List<CleanupRule> kRules = [
     id: 'simun',
     label: 'Simuladores indisponíveis',
     description: 'Runtimes de simulador sem suporte no seu Xcode.',
-    safety: Safety.safe,
+    // Irreversible (simctl delete — no Trash), so never 'safe' by default.
+    safety: Safety.confirm,
     action: RunCommand('xcrun', ['simctl', 'delete', 'unavailable']),
   ),
   CleanupRule(
@@ -236,9 +398,10 @@ const List<CleanupRule> kRules = [
     label: 'Caches do CoreSimulator',
     description: 'Dados de simulador em cache e snapshots de dispositivos.',
     safety: Safety.safe,
+    // Recreatable cache only. NEVER include Cryptex/Devices/Volumes — those are
+    // the simulator runtime and data, not cache.
     action: TrashPaths([
       '~/Library/Developer/CoreSimulator/Caches',
-      '~/Library/Developer/CoreSimulator/Cryptex',
     ], contentsOnly: true),
   ),
   CleanupRule(
@@ -255,7 +418,8 @@ const List<CleanupRule> kRules = [
     id: 'brew',
     label: 'Limpeza do Homebrew',
     description: 'Downloads antigos e versões obsoletas de fórmulas.',
-    safety: Safety.safe,
+    // Irreversible (brew cleanup — no Trash), so never 'safe' by default.
+    safety: Safety.confirm,
     action: RunCommand('brew', ['cleanup', '-s']),
   ),
   CleanupRule(
@@ -291,6 +455,87 @@ const List<CleanupRule> kRules = [
     // NEVER add --volumes (spec §9.5).
     action: RunCommand('docker', ['system', 'prune', '-a', '-f']),
   ),
+  CleanupRule(
+    id: 'simruntime',
+    label: 'Simulador iOS — runtimes antigos',
+    description:
+        'Mantém só o iOS mais recente; remove os runtimes antigos. Irreversível.',
+    safety: Safety.danger,
+    action: DeleteSimRuntimes(keep: 1),
+  ),
+  CleanupRule(
+    id: 'flutter',
+    label: 'Flutter — build/.dart_tool',
+    description:
+        'build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'pubspec.yaml',
+      markerPattern: r'(^|\n)\s*(flutter:|sdk:\s*flutter)',
+      artifactDirs: ['build', '.dart_tool'],
+    ),
+  ),
+  CleanupRule(
+    id: 'react',
+    label: 'React Native — node_modules/Pods/build',
+    description:
+        'node_modules, Pods e saídas de build dos projetos React Native (recriáveis com install/build).',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'package.json',
+      markerPattern: r'"(react-native|expo)"',
+      artifactDirs: [
+        'node_modules',
+        'ios/Pods',
+        'ios/build',
+        'android/build',
+        'android/app/build',
+        'android/.gradle',
+      ],
+    ),
+  ),
+  CleanupRule(
+    id: 'web',
+    label: 'React / Next.js — node_modules/.next/build',
+    description:
+        'node_modules e saídas de build web (.next, build, dist, out) de projetos React/Next.',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'package.json',
+      markerPattern: r'"(next|react)"',
+      artifactDirs: ['node_modules', '.next', 'build', 'dist', 'out'],
+    ),
+  ),
+  CleanupRule(
+    id: 'php',
+    label: 'PHP — vendor (Composer)',
+    description:
+        'Dependências do Composer (vendor/) de projetos PHP (recriáveis com composer install).',
+    safety: Safety.confirm,
+    action: ProjectArtifacts(
+      roots: kProjectRoots,
+      markerFile: 'composer.json',
+      markerPattern: r'.', // composer.json presence already signals PHP
+      artifactDirs: ['vendor'],
+    ),
+  ),
+];
+
+/// Common developer project roots scanned by the project-artifact rules. Only
+/// the ones that exist are walked.
+const List<String> kProjectRoots = [
+  '~/StudioProjects',
+  '~/IdeaProjects',
+  '~/AndroidStudioProjects',
+  '~/Projects',
+  '~/Documents',
+  '~/dev',
+  '~/development',
+  '~/code',
+  '~/src',
 ];
 
 /// CLI entry point. Scans all rules; `--apply` cleans the `safe` ones.
@@ -324,7 +569,7 @@ Future<void> main(List<String> argv) async {
         await engine.clean(rule);
         stdout.writeln('  ok ${rule.id}');
       } catch (e) {
-        // Falha graciosa: uma regra não derruba as outras (spec §9.7).
+        // Graceful failure: one rule's error doesn't abort the others (spec §9.7).
         stdout.writeln('  ERRO ${rule.id}: $e');
       }
     }

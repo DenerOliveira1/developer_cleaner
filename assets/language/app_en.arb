@@ -2,6 +2,7 @@
   "@@locale": "en",
 
   "breakdown": "Disk breakdown",
+  "readingDisk": "Reading disk…",
   "used": "USED",
   "diskSub": "{free} free · {total} total",
   "@diskSub": {
@@ -39,18 +40,22 @@
   "waiting": "waiting in Trash",
   "trashEmptiedLbl": "Trash emptied",
   "emptyCta": "Empty Trash to free it for good",
+  "emptying": "Emptying the Trash…",
   "trashEmpty": "Trash is empty",
   "recoverNote": "Trashed items are recoverable until you empty the Trash.",
 
-  "dTitle": "Remove old Android NDK versions?",
-  "dBody1": "The right NDK depends on your projects’ ",
-  "dBody2": ". Review the versions below before removing — the wrong one breaks native builds.",
-  "reviewed": "I reviewed the versions above.",
+  "removeTitle": "Remove {name}?",
+  "@removeTitle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "reviewed": "I reviewed the items above.",
   "cancel": "Cancel",
   "moveTrash": "Move {size} to Trash",
   "@moveTrash": {
     "placeholders": { "size": { "type": "String" } }
   },
+  "removePermanently": "Remove permanently",
+  "permanentWarning": "Permanent — does not go to the Trash.",
   "keeps": "Keeps {version}",
   "@keeps": {
     "placeholders": { "version": { "type": "String" } }
@@ -65,6 +70,17 @@
   "emptyTrash": "Empty Trash",
 
   "genericError": "Something went wrong.",
+  "dryRun": "Dry run",
+  "macosOnly": "DevDisk Cleaner runs on macOS only.",
+  "errTrashMove": "Couldn't move to the Trash.",
+  "errEmptyTrash": "Couldn't empty the Trash.",
+  "errRemoveRuntime": "Couldn't remove the simulator runtime.",
+  "errRunCommand": "The command failed.",
+  "scanAgain": "Scan again",
+  "cleanFailures": "{count, plural, =1{1 rule could not be cleaned} other{{count} rules could not be cleaned}}",
+  "@cleanFailures": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "badge": "{safety, select, safe{SAFE} confirm{CONFIRM} danger{DANGER} other{}}",
   "@badge": {
@@ -76,12 +92,12 @@
     "placeholders": { "key": { "type": "String" } }
   },
 
-  "ruleName": "{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} other{}}",
+  "ruleName": "{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} simruntime{iOS Simulator — old runtimes} flutter{Flutter — build/.dart_tool} react{React Native — node_modules/Pods/build} web{React / Next.js — node_modules/.next} php{PHP — vendor (Composer)} other{}}",
   "@ruleName": {
     "placeholders": { "ruleId": { "type": "String" } }
   },
 
-  "ruleDesc": "{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} other{}}",
+  "ruleDesc": "{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} simruntime{Keeps only the latest iOS; removes old simulator runtimes. Irreversible.} flutter{build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).} react{node_modules, Pods and build outputs from your React Native projects (recreated with install/build).} web{node_modules and web build output (.next, build, dist, out) from React/Next projects.} php{Composer dependencies (vendor/) from PHP projects (recreated with composer install).} other{}}",
   "@ruleDesc": {
     "placeholders": { "ruleId": { "type": "String" } }
   }

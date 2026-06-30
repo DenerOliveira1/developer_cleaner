@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/cleaner/clean_models.dart';
 import '../../core/util/byte_format.dart';
+import '../../domain/usecases/clean_rules.dart' show CleanFailure;
 import '../cubit/cleaner_cubit.dart';
 import '../../l10n/app_localizations.dart';
 import '../cubit/cleaner_state.dart';
@@ -36,6 +37,7 @@ class _CleanerPageState extends State<CleanerPage>
 
   bool _dryRun = false;
   bool _reduced = false;
+  bool _showFailures = false;
   CleanerPhase? _lastPhase;
   bool _gaugeShown = false;
 
@@ -64,11 +66,16 @@ class _CleanerPageState extends State<CleanerPage>
     if (s.phase == _lastPhase) return;
     _lastPhase = s.phase;
 
+    // Allow the idle gauge to re-animate on a later return (e.g. after a
+    // restart from Done).
+    if (s.phase != CleanerPhase.idle) _gaugeShown = false;
+
     switch (s.phase) {
       case CleanerPhase.scanning:
         if (!_reduced) _spin.repeat();
       case CleanerPhase.done:
         _spin.stop();
+        _showFailures = false;
         if (_reduced) {
           _gauge.value = 1;
           _reveal.value = 1;
@@ -107,7 +114,8 @@ class _CleanerPageState extends State<CleanerPage>
 
   Widget _body(BuildContext context, CleanerState s, AppLocalizations str) {
     return switch (s.phase) {
-      CleanerPhase.error => _Error(message: s.error ?? str.genericError),
+      CleanerPhase.error =>
+        _Error(message: _errorText(str, s.errorCode), detail: s.error),
       CleanerPhase.scanning => _scanning(s, str),
       CleanerPhase.results => _results(context, s, str),
       CleanerPhase.cleaning => _cleaning(s, str),
@@ -120,12 +128,11 @@ class _CleanerPageState extends State<CleanerPage>
   Widget _idle(BuildContext context, CleanerState s, AppLocalizations str) {
     final disk = s.disk;
     if (disk == null) {
-      return const Center(
-        child: SizedBox(
-          width: 26,
-          height: 26,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
-        ),
+      return _DiskLoading(
+        label: str.readingDisk,
+        progress: s.diskProgress,
+        path: s.diskScanPath,
+        reduced: _reduced,
       );
     }
     final segments = [
@@ -145,7 +152,7 @@ class _CleanerPageState extends State<CleanerPage>
             child: AnimatedBuilder(
               animation: _gauge,
               builder: (_, _) => DiskGauge(
-                size: 336,
+                size: 370,
                 segments: segments,
                 total: disk.totalBytes.toDouble(),
                 progress: _gauge.value,
@@ -277,7 +284,7 @@ class _CleanerPageState extends State<CleanerPage>
           AnimatedBuilder(
             animation: _spin,
             builder: (_, _) => DiskGauge(
-              size: 300,
+              size: 330,
               segments: const [],
               total: 1,
               spinnerFraction: 140 / (2 * 3.14159 * 130),
@@ -392,11 +399,19 @@ class _CleanerPageState extends State<CleanerPage>
       final dangerResult = s.results.firstWhere(
         (r) => r.rule.safety == Safety.danger && s.isSelected(r.rule.id),
       );
+      final rule = dangerResult.rule;
+      final permanent = !isReversibleAction(rule.action);
       final ok = await showDangerModal(
         context,
-        ndk: dangerResult,
         str: str,
-        sizeLabel: _hero(dangerResult.bytes ?? 0),
+        title: str.removeTitle(str.ruleName(rule.id)),
+        body: str.ruleDesc(rule.id),
+        targets: dangerResult.targets,
+        keepNote: dangerResult.keepNote,
+        permanent: permanent,
+        confirmLabel: permanent
+            ? str.removePermanently
+            : str.moveTrash(_hero(dangerResult.bytes ?? 0)),
       );
       if (!ok) return;
       cubit.confirmDanger();
@@ -406,9 +421,8 @@ class _CleanerPageState extends State<CleanerPage>
 
   // ── Cleaning ──────────────────────────────────────────────────────────────
   Widget _cleaning(CleanerState s, AppLocalizations str) {
-    final cur = s.cleaningRuleId == null
-        ? ''
-        : (s.resultFor(s.cleaningRuleId!)?.rule.label ?? s.cleaningRuleId!);
+    final cur =
+        s.cleaningRuleId == null ? '' : str.ruleName(s.cleaningRuleId!);
     final total = s.cleanTotal == 0 ? 1 : s.cleanTotal;
     final fraction = ((s.cleanIndex + 1) / total).clamp(0.0, 1.0);
     return Center(
@@ -482,7 +496,7 @@ class _CleanerPageState extends State<CleanerPage>
                 ];
                 final freeNow = free + freed * p;
                 return DiskGauge(
-                  size: 312,
+                  size: 343,
                   segments: segments,
                   total: total,
                   progress: 1,
@@ -539,20 +553,71 @@ class _CleanerPageState extends State<CleanerPage>
                 const SizedBox(height: 20),
                 _trashSplit(str, freed, inTrash, s.trashEmptied),
                 const SizedBox(height: 16),
-                _EmptyTrashButton(
-                  label: s.trashEmptied ? str.trashEmpty : str.emptyCta,
-                  enabled: !s.trashEmptied && inTrash > 0,
-                  onTap: () async {
-                    final ok = await showEmptyTrashModal(context,
-                        str: str, sizeLabel: _hero(inTrash));
-                    if (ok && context.mounted) {
-                      context.read<CleanerCubit>().emptyTrash();
-                    }
-                  },
-                ),
+                if (s.emptyingTrash)
+                  _EmptyTrashProgress(
+                      label: str.emptying, progress: s.emptyTrashProgress)
+                else
+                  _EmptyTrashButton(
+                    label: s.trashEmptied ? str.trashEmpty : str.emptyCta,
+                    enabled: !s.trashEmptied && inTrash > 0,
+                    onTap: () async {
+                      final ok = await showEmptyTrashModal(context,
+                          str: str, sizeLabel: _hero(inTrash));
+                      if (ok && context.mounted) {
+                        context.read<CleanerCubit>().emptyTrash();
+                      }
+                    },
+                  ),
                 const SizedBox(height: 12),
                 Text(str.recoverNote,
                     style: AppText.mono(11.5, color: AppColors.faintest)),
+                if (s.failures.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _showFailures = !_showFailures),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 14, color: AppColors.confirm),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(str.cleanFailures(s.failures.length),
+                              style:
+                                  AppText.mono(11.5, color: AppColors.confirm)),
+                        ),
+                        Icon(
+                            _showFailures
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 16,
+                            color: AppColors.confirm),
+                      ],
+                    ),
+                  ),
+                  if (_showFailures) ...[
+                    const SizedBox(height: 8),
+                    _FailureDetails(failures: s.failures, str: str),
+                  ],
+                ],
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: () => context.read<CleanerCubit>().restart(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh,
+                          size: 15, color: AppColors.accentMono),
+                      const SizedBox(width: 6),
+                      Text(str.scanAgain,
+                          style: AppText.ui(13,
+                              weight: FontWeight.w500,
+                              color: AppColors.accentMono)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -652,7 +717,7 @@ class _AccentButton extends StatelessWidget {
         child: Text(label,
             style: AppText.space(16,
                 wght: 600,
-                color: enabled ? const Color(0xFF0E1622) : AppColors.faintest2)),
+                color: enabled ? AppColors.onAccent : AppColors.faintest2)),
       ),
     );
   }
@@ -733,7 +798,7 @@ class _DryToggle extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 7),
-          Text('Dry-run',
+          Text(AppLocalizations.of(context).dryRun,
               style: AppText.mono(11,
                   color: value ? AppColors.accentMono : AppColors.faintest)),
         ],
@@ -772,18 +837,264 @@ class _EmptyTrashButton extends StatelessWidget {
   }
 }
 
+/// Idle loading readout while the disk breakdown (`df` + `du`) runs. Replaces
+/// the bare spinner with a real percentage, a "reading disk" message, and the
+/// path being measured. Determinate bar → honors reduced-motion (no spinner).
+///
+/// The kicker's trailing dots cycle (1→2→3) as a constant "still working" pulse
+/// — important because a single `du` can stall the percentage for seconds. The
+/// dots animate independently of progress, so the user sees life even when the
+/// bar is momentarily static. Reduced-motion shows the full ellipsis, no pulse.
+class _DiskLoading extends StatefulWidget {
+  final String label;
+  final double progress; // 0..1
+  final String? path;
+  final bool reduced;
+  const _DiskLoading(
+      {required this.label,
+      required this.progress,
+      required this.path,
+      required this.reduced});
+
+  @override
+  State<_DiskLoading> createState() => _DiskLoadingState();
+}
+
+class _DiskLoadingState extends State<_DiskLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1400))
+    ..repeat();
+
+  /// Label without its trailing ellipsis ("…" or "...") so the dots can pulse.
+  String get _base {
+    var s = widget.label.trimRight();
+    if (s.endsWith('…')) s = s.substring(0, s.length - 1);
+    while (s.endsWith('.')) {
+      s = s.substring(0, s.length - 1);
+    }
+    return s.trimRight().toUpperCase();
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = widget.progress.clamp(0.0, 1.0);
+    final pct = (value * 100).round();
+    final kicker =
+        AppText.mono(11, letterSpacing: 2, color: AppColors.faintest);
+    return Center(
+      child: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.reduced)
+              Text('$_base…', style: kicker)
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_base, style: kicker),
+                  // 3 fixed-width dots; the active count cycles 1→2→3, the rest
+                  // sit dimmed so the row never reflows.
+                  AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (_, _) {
+                      final active = (_pulse.value * 3).floor() % 3 + 1; // 1..3
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < 3; i++)
+                            Text('.',
+                                style: kicker.copyWith(
+                                    color: i < active
+                                        ? AppColors.faint
+                                        : AppColors.faintest3)),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('$pct',
+                    style: AppText.space(72,
+                        wght: 700,
+                        letterSpacing: -2.4,
+                        color: AppColors.heroInk)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Text('%',
+                      style: AppText.space(28,
+                          wght: 600, color: AppColors.accentMono)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 5,
+                backgroundColor: AppColors.divider,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 16,
+              child: Text(
+                widget.path ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.mono(11.5, color: AppColors.faintest),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Replaces the Empty-Trash CTA while the Trash is being emptied. Shows a real
+/// percentage (observed fraction removed) over a determinate bar — determinate
+/// so it honors reduced-motion (no spinner; the value just jumps).
+class _EmptyTrashProgress extends StatelessWidget {
+  final String label;
+  final double progress; // 0..1
+  const _EmptyTrashProgress({required this.label, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final value = progress.clamp(0.0, 1.0);
+    final pct = (value * 100).round();
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.danger.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.36)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label,
+                  style: AppText.ui(12.5,
+                      weight: FontWeight.w600, color: AppColors.dangerBright)),
+              Text('$pct%',
+                  style: AppText.mono(12.5, color: AppColors.dangerBright)),
+            ],
+          ),
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 5,
+              backgroundColor: AppColors.danger.withValues(alpha: 0.14),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.dangerBright),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Per-rule failure details on the Done screen: the rule that failed and the
+/// raw engine/command error, so a silent failure becomes diagnosable.
+class _FailureDetails extends StatelessWidget {
+  final List<CleanFailure> failures;
+  final AppLocalizations str;
+  const _FailureDetails({required this.failures, required this.str});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.sunken,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.borderPreview),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < failures.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            Text(str.ruleName(failures[i].ruleId),
+                style: AppText.ui(12,
+                    weight: FontWeight.w600, color: AppColors.rowName)),
+            const SizedBox(height: 3),
+            Text(_errorText(str, failures[i].code),
+                style: AppText.mono(11, color: AppColors.bodyDim, height: 1.4)),
+            if ((failures[i].detail ?? '').isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(failures[i].detail!,
+                  style:
+                      AppText.mono(10.5, color: AppColors.faintest3, height: 1.4)),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Maps an engine [CleanerErrorCode] to its localized message (null → generic).
+String _errorText(AppLocalizations str, CleanerErrorCode? code) =>
+    switch (code) {
+      CleanerErrorCode.trashMove => str.errTrashMove,
+      CleanerErrorCode.emptyTrash => str.errEmptyTrash,
+      CleanerErrorCode.removeRuntime => str.errRemoveRuntime,
+      CleanerErrorCode.runCommand => str.errRunCommand,
+      null => str.genericError,
+    };
+
 class _Error extends StatelessWidget {
   final String message;
-  const _Error({required this.message});
+  final String? detail;
+  const _Error({required this.message, this.detail});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
-        child: Text(message,
-            textAlign: TextAlign.center,
-            style: AppText.ui(15, color: AppColors.danger)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message,
+                textAlign: TextAlign.center,
+                style: AppText.ui(15, color: AppColors.danger)),
+            if ((detail ?? '').isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(detail!,
+                  textAlign: TextAlign.center,
+                  style: AppText.mono(11.5, color: AppColors.faintest)),
+            ],
+          ],
+        ),
       ),
     );
   }

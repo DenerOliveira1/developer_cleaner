@@ -142,6 +142,121 @@ void main() {
     expect(runner.calls.single.$2, isNot(contains('--volumes')));
   });
 
+  test('DeleteSimRuntimes keeps the latest iOS runtime, deletes older ones',
+      () async {
+    // `simctl runtime list -j` shape: a map keyed by disk-image UUID.
+    const ios = 'com.apple.platform.iphonesimulator';
+    const watch = 'com.apple.platform.watchsimulator';
+    final json = '''
+    {
+      "UUID-180": {"identifier":"UUID-180","version":"18.0","build":"22A","platformIdentifier":"$ios","deletable":true,"sizeBytes":8000000000},
+      "UUID-185": {"identifier":"UUID-185","version":"18.5","build":"22F","platformIdentifier":"$ios","deletable":true,"sizeBytes":9000000000},
+      "UUID-265": {"identifier":"UUID-265","version":"26.5","build":"23F","platformIdentifier":"$ios","deletable":true,"sizeBytes":8000000000},
+      "UUID-watch": {"identifier":"UUID-watch","version":"11.0","build":"x","platformIdentifier":"$watch","deletable":true,"sizeBytes":5000000000}
+    }''';
+    final runner = FakeProcessRunner({'xcrun': ProcessResult(0, 0, json, '')});
+    final engine = CleanerEngine(runner: runner);
+    const rule = CleanupRule(
+      id: 'simruntime',
+      label: 'simruntime',
+      description: '',
+      safety: Safety.danger,
+      action: DeleteSimRuntimes(keep: 1),
+    );
+
+    final scan = await engine.scan(rule);
+    expect(scan.keepNote, 'iOS 26.5'); // newest by version
+    expect(scan.targets.length, 2); // 18.0 + 18.5; watchOS filtered out
+    expect(scan.targets.any((t) => t.contains('18.0')), isTrue);
+    expect(scan.bytes, 8000000000 + 9000000000); // sum of removed sizeBytes
+
+    await engine.clean(rule);
+    final deletes = runner.calls
+        .where((c) => c.$1 == 'xcrun' && c.$2.contains('delete'))
+        .toList();
+    expect(deletes.length, 2);
+    // Deletes by image UUID (not the SimRuntime identifier).
+    expect(deletes.any((c) => c.$2.contains('UUID-180')), isTrue);
+    expect(deletes.any((c) => c.$2.contains('UUID-265')), isFalse); // kept
+  });
+
+  CleanupRule projectRule(ProjectArtifacts action) => CleanupRule(
+        id: 'proj',
+        label: 'proj',
+        description: '',
+        safety: Safety.confirm,
+        action: action,
+      );
+
+  test('ProjectArtifacts (Flutter) discovers projects, ignores pure Dart',
+      () async {
+    final engine = CleanerEngine(runner: FakeProcessRunner());
+
+    final app = Directory('${tmp.path}/app')..createSync();
+    File('${app.path}/pubspec.yaml').writeAsStringSync(
+        'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
+    Directory('${app.path}/build').createSync();
+    Directory('${app.path}/.dart_tool').createSync();
+    Directory('${app.path}/lib').createSync(); // not an artifact
+
+    final pkg = Directory('${tmp.path}/pure')..createSync();
+    File('${pkg.path}/pubspec.yaml').writeAsStringSync('name: pure\n');
+    Directory('${pkg.path}/.dart_tool').createSync();
+
+    final scan = await engine.scan(projectRule(ProjectArtifacts(
+      roots: [tmp.path],
+      markerFile: 'pubspec.yaml',
+      markerPattern: r'(^|\n)\s*(flutter:|sdk:\s*flutter)',
+      artifactDirs: const ['build', '.dart_tool'],
+    )));
+
+    expect(scan.targets,
+        containsAll(['${app.path}/build', '${app.path}/.dart_tool']));
+    expect(scan.targets, isNot(contains('${pkg.path}/.dart_tool')));
+  });
+
+  test('ProjectArtifacts (React Native) targets node_modules/Pods/build',
+      () async {
+    final runner = FakeProcessRunner();
+    final engine = CleanerEngine(runner: runner);
+
+    final app = Directory('${tmp.path}/rn')..createSync();
+    File('${app.path}/package.json').writeAsStringSync(
+        '{"name":"rn","dependencies":{"react-native":"0.74.0"}}');
+    Directory('${app.path}/node_modules').createSync();
+    Directory('${app.path}/ios/Pods').createSync(recursive: true);
+    Directory('${app.path}/android/.gradle').createSync(recursive: true);
+
+    // A plain Node package (no react-native/expo) — ignored.
+    final plain = Directory('${tmp.path}/node-only')..createSync();
+    File('${plain.path}/package.json').writeAsStringSync('{"name":"x"}');
+    Directory('${plain.path}/node_modules').createSync();
+
+    final rule = projectRule(ProjectArtifacts(
+      roots: [tmp.path],
+      markerFile: 'package.json',
+      markerPattern: r'"(react-native|expo)"',
+      artifactDirs: const [
+        'node_modules',
+        'ios/Pods',
+        'android/.gradle',
+      ],
+    ));
+
+    final scan = await engine.scan(rule);
+    expect(
+        scan.targets,
+        containsAll([
+          '${app.path}/node_modules',
+          '${app.path}/ios/Pods',
+          '${app.path}/android/.gradle',
+        ]));
+    expect(scan.targets, isNot(contains('${plain.path}/node_modules')));
+
+    await engine.clean(rule);
+    expect(runner.calls.where((c) => c.$1 == 'osascript').length, greaterThan(0));
+  });
+
   test('trash uses osascript Finder and never sh -c', () async {
     final runner = FakeProcessRunner();
     final engine = CleanerEngine(runner: runner);

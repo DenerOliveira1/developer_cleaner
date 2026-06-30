@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Disk breakdown'**
   String get breakdown;
 
+  /// No description provided for @readingDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading disk…'**
+  String get readingDisk;
+
   /// No description provided for @used.
   ///
   /// In en, this message translates to:
@@ -230,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Empty Trash to free it for good'**
   String get emptyCta;
 
+  /// No description provided for @emptying.
+  ///
+  /// In en, this message translates to:
+  /// **'Emptying the Trash…'**
+  String get emptying;
+
   /// No description provided for @trashEmpty.
   ///
   /// In en, this message translates to:
@@ -242,28 +254,16 @@ abstract class AppLocalizations {
   /// **'Trashed items are recoverable until you empty the Trash.'**
   String get recoverNote;
 
-  /// No description provided for @dTitle.
+  /// No description provided for @removeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove old Android NDK versions?'**
-  String get dTitle;
-
-  /// No description provided for @dBody1.
-  ///
-  /// In en, this message translates to:
-  /// **'The right NDK depends on your projects’ '**
-  String get dBody1;
-
-  /// No description provided for @dBody2.
-  ///
-  /// In en, this message translates to:
-  /// **'. Review the versions below before removing — the wrong one breaks native builds.'**
-  String get dBody2;
+  /// **'Remove {name}?'**
+  String removeTitle(String name);
 
   /// No description provided for @reviewed.
   ///
   /// In en, this message translates to:
-  /// **'I reviewed the versions above.'**
+  /// **'I reviewed the items above.'**
   String get reviewed;
 
   /// No description provided for @cancel.
@@ -277,6 +277,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move {size} to Trash'**
   String moveTrash(String size);
+
+  /// No description provided for @removePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove permanently'**
+  String get removePermanently;
+
+  /// No description provided for @permanentWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent — does not go to the Trash.'**
+  String get permanentWarning;
 
   /// No description provided for @keeps.
   ///
@@ -332,6 +344,54 @@ abstract class AppLocalizations {
   /// **'Something went wrong.'**
   String get genericError;
 
+  /// No description provided for @dryRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Dry run'**
+  String get dryRun;
+
+  /// No description provided for @macosOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'DevDisk Cleaner runs on macOS only.'**
+  String get macosOnly;
+
+  /// No description provided for @errTrashMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t move to the Trash.'**
+  String get errTrashMove;
+
+  /// No description provided for @errEmptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t empty the Trash.'**
+  String get errEmptyTrash;
+
+  /// No description provided for @errRemoveRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the simulator runtime.'**
+  String get errRemoveRuntime;
+
+  /// No description provided for @errRunCommand.
+  ///
+  /// In en, this message translates to:
+  /// **'The command failed.'**
+  String get errRunCommand;
+
+  /// No description provided for @scanAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan again'**
+  String get scanAgain;
+
+  /// No description provided for @cleanFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule could not be cleaned} other{{count} rules could not be cleaned}}'**
+  String cleanFailures(int count);
+
   /// No description provided for @badge.
   ///
   /// In en, this message translates to:
@@ -347,13 +407,13 @@ abstract class AppLocalizations {
   /// No description provided for @ruleName.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} other{}}'**
+  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} simruntime{iOS Simulator — old runtimes} flutter{Flutter — build/.dart_tool} react{React Native — node_modules/Pods/build} web{React / Next.js — node_modules/.next} php{PHP — vendor (Composer)} other{}}'**
   String ruleName(String ruleId);
 
   /// No description provided for @ruleDesc.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} other{}}'**
+  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} simruntime{Keeps only the latest iOS; removes old simulator runtimes. Irreversible.} flutter{build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).} react{node_modules, Pods and build outputs from your React Native projects (recreated with install/build).} web{node_modules and web build output (.next, build, dist, out) from React/Next projects.} php{Composer dependencies (vendor/) from PHP projects (recreated with composer install).} other{}}'**
   String ruleDesc(String ruleId);
 }
 

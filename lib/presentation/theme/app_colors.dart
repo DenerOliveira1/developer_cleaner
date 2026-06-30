@@ -12,6 +12,7 @@ abstract final class AppColors {
   static const raisedModal = Color(0xFF1B1922);
   static const sunken = Color(0xFF121116);
   static const gaugeTrack = Color(0xFF211E2A);
+  static const toggleActive = Color(0xFF33303D); // active PT|EN segment
 
   // Borders.
   static const border = Color(0xFF2A2733);
@@ -19,6 +20,11 @@ abstract final class AppColors {
   static const borderModal = Color(0xFF322833);
   static const borderActive = Color(0xFF2E2A38);
   static const borderPreview = Color(0xFF221F2A);
+  static const borderControl = Color(0xFF3A3743); // checkbox outline, minor gauge ticks
+
+  // Overlays (modal scrim + shadow).
+  static const scrim = Color(0xA8070609);
+  static const modalShadow = Color(0xCC000000);
 
   // Ink (light → faint).
   static const heroInk = Color(0xFFF4F1EA);
@@ -40,6 +46,7 @@ abstract final class AppColors {
   static const accent = Color(0xFF6FA0D9);
   static const accentMono = Color(0xFF9CC0EA);
   static const accentDeep = Color(0xFF3E5E86);
+  static const onAccent = Color(0xFF0E1622); // ink/icon on accent or bright fills
   static const accentGradient =
       LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [accentLight, accentDark]);
 

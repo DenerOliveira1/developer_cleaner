@@ -65,18 +65,29 @@ class _UnsupportedApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // No locale set → Flutter resolves the system locale against the supported
+    // ones, so the abort message shows in the user's language.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(brightness: Brightness.dark),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         backgroundColor: AppColors.pageMid,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Text(
-              'DevDisk Cleaner roda apenas no macOS.',
-              textAlign: TextAlign.center,
-              style: AppText.ui(18, color: AppColors.danger),
+            child: Builder(
+              builder: (context) => Text(
+                AppLocalizations.of(context).macosOnly,
+                textAlign: TextAlign.center,
+                style: AppText.ui(18, color: AppColors.danger),
+              ),
             ),
           ),
         ),

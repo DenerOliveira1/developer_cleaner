@@ -15,26 +15,47 @@ class CleanerCubit extends Cubit<CleanerState> {
   final CleanerRepository _repository;
   final List<CleanupRule> _rules;
 
+  /// How often the Trash size is re-measured while emptying, to update the
+  /// progress. Injectable so tests can drive it without real-time waits.
+  final Duration _emptyTrashPollInterval;
+
   CleanerCubit({
     required ScanRules scanRules,
     required CleanRules cleanRules,
     required CleanerRepository repository,
     List<CleanupRule>? rules,
+    Duration emptyTrashPollInterval = const Duration(milliseconds: 350),
   })  : _scanRules = scanRules,
         _cleanRules = cleanRules,
         _repository = repository,
         _rules = rules ?? kRules,
+        _emptyTrashPollInterval = emptyTrashPollInterval,
         super(const CleanerState());
 
-  /// Loads the disk gauge on the Idle screen.
+  /// Loads the disk gauge on the Idle screen, reporting real progress while the
+  /// `du` breakdown runs so the loading readout shows a percentage + the path
+  /// being measured (instead of a bare spinner).
   Future<void> init() async {
+    emit(state.copyWith(
+        diskProgress: 0, diskScanPath: null, error: null, errorCode: null));
     try {
-      final disk = await _repository.diskStats();
-      emit(state.copyWith(disk: disk));
+      final disk = await _repository.diskStats(
+        onProgress: (p, path) =>
+            emit(state.copyWith(diskProgress: p, diskScanPath: path)),
+      );
+      emit(state.copyWith(disk: disk, diskProgress: 1, diskScanPath: null));
     } catch (e) {
-      emit(state.copyWith(phase: CleanerPhase.error, error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          phase: CleanerPhase.error, error: detail, errorCode: code));
     }
   }
+
+  /// Splits a caught error into (localizable code, raw detail). A
+  /// [CleanerException] carries both; anything else is generic (null code).
+  (CleanerErrorCode?, String) _errParts(Object e) => e is CleanerException
+      ? (e.code, e.detail ?? '')
+      : (null, e.toString());
 
   void setLang(AppLang lang) => emit(state.copyWith(lang: lang));
 
@@ -42,7 +63,10 @@ class CleanerCubit extends Cubit<CleanerState> {
   /// Results with the default selection (safe + actionable checked).
   Future<void> scanAll() async {
     emit(state.copyWith(
-        phase: CleanerPhase.scanning, scanProgress: 0, error: null));
+        phase: CleanerPhase.scanning,
+        scanProgress: 0,
+        error: null,
+        errorCode: null));
     try {
       final results = await _scanRules(
         _rules,
@@ -71,7 +95,9 @@ class CleanerCubit extends Cubit<CleanerState> {
         expandedId: expand,
       ));
     } catch (e) {
-      emit(state.copyWith(phase: CleanerPhase.error, error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          phase: CleanerPhase.error, error: detail, errorCode: code));
     }
   }
 
@@ -124,8 +150,11 @@ class CleanerCubit extends Cubit<CleanerState> {
       return;
     }
 
+    // Reversible rules (TrashPaths/KeepLatest/FlutterArtifacts) move bytes to
+    // the Trash — they don't free disk until it's emptied, so they count as
+    // "waiting in Trash", not "freed".
     final inTrash = selected
-        .where((r) => r.action is TrashPaths || r.action is KeepLatest)
+        .where((r) => isReversibleAction(r.action))
         .fold<int>(0, (sum, r) => sum + (state.resultFor(r.id)?.bytes ?? 0));
 
     // Cheap `df` (no `du`) so the Cleaning→Done transition isn't blocked.
@@ -145,13 +174,58 @@ class CleanerCubit extends Cubit<CleanerState> {
     ));
   }
 
+  /// Returns to Idle for another pass, preserving the chosen language and
+  /// refreshing disk stats so the gauge reflects the space just reclaimed.
+  Future<void> restart() async {
+    emit(CleanerState(lang: state.lang));
+    await init();
+  }
+
   /// Empties the Trash — the one permanent action (behind the modal gate).
+  ///
+  /// Reports a real percentage: Finder's `empty trash` gives no progress, so we
+  /// measure the Trash size up front, then poll it while the deletion runs and
+  /// report the observed fraction removed. If the size can't be measured we
+  /// fall back to an indeterminate run (no percentage) — the deletion still
+  /// proceeds. Errors revert [emptyingTrash] so the CTA comes back.
   Future<void> emptyTrash() async {
+    emit(state.copyWith(
+        emptyingTrash: true,
+        emptyTrashProgress: 0,
+        error: null,
+        errorCode: null));
     try {
-      await _repository.emptyTrash();
-      emit(state.copyWith(trashEmptied: true));
+      var initial = 0;
+      try {
+        initial = await _repository.trashSizeBytes();
+      } catch (_) {
+        initial = 0; // can't measure → empty without a percentage
+      }
+
+      var done = false;
+      final op = _repository.emptyTrash().whenComplete(() => done = true);
+
+      if (initial > 0) {
+        while (!done) {
+          await Future<void>.delayed(_emptyTrashPollInterval);
+          if (done) break;
+          try {
+            final current = await _repository.trashSizeBytes();
+            final progress = ((initial - current) / initial).clamp(0.0, 0.99);
+            emit(state.copyWith(emptyTrashProgress: progress));
+          } catch (_) {
+            // A transient `du` failure shouldn't abort — keep waiting for op.
+          }
+        }
+      }
+
+      await op; // surface a Finder failure
+      emit(state.copyWith(
+          emptyingTrash: false, emptyTrashProgress: 1, trashEmptied: true));
     } catch (e) {
-      emit(state.copyWith(error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          emptyingTrash: false, error: detail, errorCode: code));
     }
   }
 }

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = developer_cleaner
+PRODUCT_NAME = DevDisk Cleaner
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = br.com.deneroliveir.developer.cleaner.developerCleaner
+PRODUCT_BUNDLE_IDENTIFIER = br.com.deneroliveira.developer.cleaner
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 br.com.deneroliveir.developer.cleaner. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Dener Oliveira. All rights reserved.

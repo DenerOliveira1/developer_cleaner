@@ -13,9 +13,13 @@ class SystemCleanerDataSource {
   Future<void> clean(CleanupRule rule, {bool dryRun = false}) =>
       _engine.clean(rule, dryRun: dryRun);
 
-  Future<DiskStats> diskStats() => _engine.diskStats();
+  Future<DiskStats> diskStats(
+          {void Function(double progress, String? path)? onProgress}) =>
+      _engine.diskStats(onProgress: onProgress);
 
   Future<int> diskFreeBytes() => _engine.diskFreeBytes();
+
+  Future<int> trashSizeBytes() => _engine.trashSizeBytes();
 
   Future<void> emptyTrash() => _engine.emptyTrash();
 }

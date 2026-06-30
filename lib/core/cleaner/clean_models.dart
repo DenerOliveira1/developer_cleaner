@@ -39,6 +39,38 @@ class KeepLatest extends CleanAction {
   const KeepLatest(this.parentDir, {this.namePrefix, this.keep = 1});
 }
 
+/// Keep the [keep] newest iOS simulator runtimes (by version) and permanently
+/// delete the rest via `simctl runtime delete`. **Irreversible** — runtimes
+/// don't go to the Trash.
+class DeleteSimRuntimes extends CleanAction {
+  final int keep;
+  const DeleteSimRuntimes({this.keep = 1});
+}
+
+/// Discover projects under [roots] — a project is a dir containing
+/// [markerFile] whose content matches [markerPattern] — and trash each one's
+/// recreatable [artifactDirs] (relative paths, may be nested like `ios/Pods`).
+/// Reversible (Trash). Powers both Flutter and React Native rules.
+class ProjectArtifacts extends CleanAction {
+  final List<String> roots;
+  final String markerFile; // e.g. 'pubspec.yaml' | 'package.json'
+  final String markerPattern; // regex validating the marker's content
+  final List<String> artifactDirs; // relative dirs to trash
+  final int maxDepth;
+  const ProjectArtifacts({
+    required this.roots,
+    required this.markerFile,
+    required this.markerPattern,
+    required this.artifactDirs,
+    this.maxDepth = 4,
+  });
+}
+
+/// Whether a rule's effect can be undone. File moves (Trash) are reversible;
+/// external commands (`simctl`/`docker`/`brew`) and runtime deletions are not.
+bool isReversibleAction(CleanAction action) =>
+    action is TrashPaths || action is KeepLatest || action is ProjectArtifacts;
+
 /// A declarative cleanup rule. [label]/[description] are defaults for the CLI
 /// and debugging; the UI overrides them per-language via the i18n dictionary
 /// keyed by [id].
@@ -101,10 +133,18 @@ class DiskStats {
   int get usedBytes => totalBytes - freeBytes;
 }
 
-/// Raised when a cleaning operation fails. Carries a user-facing message.
+/// Identifies an engine failure so the presentation layer can localize it. The
+/// engine stays Flutter-free and carries no user-facing text — only the code
+/// plus a raw [CleanerException.detail] (path/stderr) for diagnostics.
+enum CleanerErrorCode { trashMove, emptyTrash, removeRuntime, runCommand }
+
+/// Raised when a cleaning operation fails. Localized at the UI boundary by
+/// mapping [code] to an ARB string; [detail] is the raw, non-localized
+/// diagnostic (offending path / command stderr).
 class CleanerException implements Exception {
-  final String message;
-  const CleanerException(this.message);
+  final CleanerErrorCode code;
+  final String? detail;
+  const CleanerException(this.code, {this.detail});
   @override
-  String toString() => message;
+  String toString() => detail == null ? code.name : '${code.name} — $detail';
 }

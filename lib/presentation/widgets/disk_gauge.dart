@@ -158,7 +158,7 @@ class _GaugePainter extends CustomPainter {
         center + dir * rIn.toDouble(),
         Paint()
           ..strokeWidth = major ? 1.6 : 1.0
-          ..color = (major ? AppColors.faintest : const Color(0xFF3A3743))
+          ..color = (major ? AppColors.faintest : AppColors.borderControl)
               .withValues(alpha: major ? 0.55 : 0.7),
       );
     }

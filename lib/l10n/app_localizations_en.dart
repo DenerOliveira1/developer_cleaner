@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get breakdown => 'Disk breakdown';
 
   @override
+  String get readingDisk => 'Reading disk…';
+
+  @override
   String get used => 'USED';
 
   @override
@@ -81,6 +84,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyCta => 'Empty Trash to free it for good';
 
   @override
+  String get emptying => 'Emptying the Trash…';
+
+  @override
   String get trashEmpty => 'Trash is empty';
 
   @override
@@ -88,17 +94,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Trashed items are recoverable until you empty the Trash.';
 
   @override
-  String get dTitle => 'Remove old Android NDK versions?';
+  String removeTitle(String name) {
+    return 'Remove $name?';
+  }
 
   @override
-  String get dBody1 => 'The right NDK depends on your projects’ ';
-
-  @override
-  String get dBody2 =>
-      '. Review the versions below before removing — the wrong one breaks native builds.';
-
-  @override
-  String get reviewed => 'I reviewed the versions above.';
+  String get reviewed => 'I reviewed the items above.';
 
   @override
   String get cancel => 'Cancel';
@@ -107,6 +108,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String moveTrash(String size) {
     return 'Move $size to Trash';
   }
+
+  @override
+  String get removePermanently => 'Remove permanently';
+
+  @override
+  String get permanentWarning => 'Permanent — does not go to the Trash.';
 
   @override
   String keeps(String version) {
@@ -136,6 +143,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get genericError => 'Something went wrong.';
+
+  @override
+  String get dryRun => 'Dry run';
+
+  @override
+  String get macosOnly => 'DevDisk Cleaner runs on macOS only.';
+
+  @override
+  String get errTrashMove => 'Couldn\'t move to the Trash.';
+
+  @override
+  String get errEmptyTrash => 'Couldn\'t empty the Trash.';
+
+  @override
+  String get errRemoveRuntime => 'Couldn\'t remove the simulator runtime.';
+
+  @override
+  String get errRunCommand => 'The command failed.';
+
+  @override
+  String get scanAgain => 'Scan again';
+
+  @override
+  String cleanFailures(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rules could not be cleaned',
+      one: '1 rule could not be cleaned',
+    );
+    return '$_temp0';
+  }
 
   @override
   String badge(String safety) {
@@ -173,6 +212,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'studio': 'Android Studio — old versions',
       'ndk': 'Android NDK — old versions',
       'docker': 'Docker — prune (no volumes)',
+      'simruntime': 'iOS Simulator — old runtimes',
+      'flutter': 'Flutter — build/.dart_tool',
+      'react': 'React Native — node_modules/Pods/build',
+      'web': 'React / Next.js — node_modules/.next',
+      'php': 'PHP — vendor (Composer)',
       'other': '',
     });
     return '$_temp0';
@@ -192,6 +236,16 @@ class AppLocalizationsEn extends AppLocalizations {
           'The right NDK depends on your projects’ ndkVersion. Review before removing.',
       'docker':
           'Dangling images and stopped build layers. Named volumes are left untouched.',
+      'simruntime':
+          'Keeps only the latest iOS; removes old simulator runtimes. Irreversible.',
+      'flutter':
+          'build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).',
+      'react':
+          'node_modules, Pods and build outputs from your React Native projects (recreated with install/build).',
+      'web':
+          'node_modules and web build output (.next, build, dist, out) from React/Next projects.',
+      'php':
+          'Composer dependencies (vendor/) from PHP projects (recreated with composer install).',
       'other': '',
     });
     return '$_temp0';
