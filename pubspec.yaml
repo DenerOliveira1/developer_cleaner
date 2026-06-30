@@ -53,6 +53,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   bloc_test: ^10.0.0
   mocktail: ^1.0.5
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -102,3 +103,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icon generation (run: dart run flutter_launcher_icons).
+# Source is assets/icons/icon.png (1024×1024). macOS-only app.
+flutter_launcher_icons:
+  macos:
+    generate: true
+    image_path: "assets/icons/icon.png"
