@@ -189,6 +189,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'ndk': 'Android NDK — old versions',
       'docker': 'Docker — prune (no volumes)',
       'simruntime': 'iOS Simulator — old runtimes',
+      'flutter': 'Flutter — build/.dart_tool',
       'other': '',
     });
     return '$_temp0';
@@ -210,6 +211,8 @@ class AppLocalizationsEn extends AppLocalizations {
           'Dangling images and stopped build layers. Named volumes are left untouched.',
       'simruntime':
           'Keeps only the latest iOS; removes old simulator runtimes. Irreversible.',
+      'flutter':
+          'build/ and .dart_tool/ from all your Flutter projects (regenerated on the next build).',
       'other': '',
     });
     return '$_temp0';

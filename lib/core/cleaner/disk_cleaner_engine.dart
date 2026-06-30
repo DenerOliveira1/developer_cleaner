@@ -154,6 +154,54 @@ class CleanerEngine {
     return 0;
   }
 
+  /// Directory names never descended into while discovering Flutter projects
+  /// (heavy/irrelevant trees), mirroring the user's clean scripts.
+  static const _pruneDirs = {
+    'build', '.dart_tool', 'node_modules', 'Pods', '.git', '.fvm', '.symlinks',
+  };
+
+  /// Finds `build/` and `.dart_tool/` dirs of Flutter projects under [roots]
+  /// (a project = a dir with a `pubspec.yaml` that mentions Flutter), walking
+  /// at most [maxDepth] levels and pruning [_pruneDirs].
+  List<String> _findFlutterArtifacts(List<String> roots, int maxDepth) {
+    final out = <String>[];
+
+    void walk(Directory dir, int depth) {
+      List<FileSystemEntity> entries;
+      try {
+        entries = dir.listSync(followLinks: false);
+      } catch (_) {
+        return; // unreadable dir — skip
+      }
+
+      final pubspec = File('${dir.path}/pubspec.yaml');
+      if (pubspec.existsSync()) {
+        try {
+          final content = pubspec.readAsStringSync();
+          if (RegExp(r'(^|\n)\s*(flutter:|sdk:\s*flutter)').hasMatch(content)) {
+            for (final name in const ['build', '.dart_tool']) {
+              final d = Directory('${dir.path}/$name');
+              if (d.existsSync()) out.add(d.path);
+            }
+          }
+        } catch (_) {/* ignore unreadable pubspec */}
+      }
+
+      if (depth >= maxDepth) return;
+      for (final e in entries) {
+        if (e is Directory && !_pruneDirs.contains(e.path.split('/').last)) {
+          walk(e, depth + 1);
+        }
+      }
+    }
+
+    for (final r in roots) {
+      final d = Directory(r);
+      if (d.existsSync()) walk(d, 0);
+    }
+    return out;
+  }
+
   /// Scans one rule: estimates reclaimable bytes and the affected paths.
   Future<ScanResult> scan(CleanupRule rule) async {
     switch (rule.action) {
@@ -183,6 +231,10 @@ class CleanerEngine {
           targets: plan.labels,
           keepNote: plan.keepNote,
         );
+      case FlutterArtifacts(:final roots, :final maxDepth):
+        final targets =
+            _findFlutterArtifacts(roots.map(expandHome).toList(), maxDepth);
+        return ScanResult(rule: rule, bytes: await du(targets), targets: targets);
     }
   }
 
@@ -225,6 +277,11 @@ class CleanerEngine {
                 'Falha ao remover runtime $id — ${res.stderr}');
           }
         }
+      case FlutterArtifacts(:final roots, :final maxDepth):
+        final targets =
+            _findFlutterArtifacts(roots.map(expandHome).toList(), maxDepth);
+        if (dryRun) return;
+        await trashAll(targets); // reversible
     }
   }
 
@@ -367,6 +424,24 @@ const List<CleanupRule> kRules = [
         'Mantém só o iOS mais recente; remove os runtimes antigos. Irreversível.',
     safety: Safety.danger,
     action: DeleteSimRuntimes(keep: 1),
+  ),
+  CleanupRule(
+    id: 'flutter',
+    label: 'Flutter — build/.dart_tool',
+    description:
+        'build/ e .dart_tool/ de todos os projetos Flutter (recriáveis no próximo build).',
+    safety: Safety.confirm,
+    action: FlutterArtifacts(roots: [
+      '~/StudioProjects',
+      '~/IdeaProjects',
+      '~/AndroidStudioProjects',
+      '~/Projects',
+      '~/Documents',
+      '~/dev',
+      '~/development',
+      '~/code',
+      '~/src',
+    ]),
   ),
 ];
 

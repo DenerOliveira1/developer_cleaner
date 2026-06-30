@@ -180,6 +180,44 @@ void main() {
     expect(deletes.any((c) => c.$2.contains('UUID-265')), isFalse); // kept
   });
 
+  test('FlutterArtifacts discovers projects and trashes build/.dart_tool',
+      () async {
+    final runner = FakeProcessRunner();
+    final engine = CleanerEngine(runner: runner);
+
+    // A Flutter project with build/ + .dart_tool/.
+    final app = Directory('${tmp.path}/app')..createSync();
+    File('${app.path}/pubspec.yaml')
+        .writeAsStringSync('name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
+    Directory('${app.path}/build').createSync();
+    Directory('${app.path}/.dart_tool').createSync();
+    Directory('${app.path}/lib').createSync(); // not an artifact
+
+    // A pure Dart package (no flutter) — must be ignored.
+    final pkg = Directory('${tmp.path}/pure')..createSync();
+    File('${pkg.path}/pubspec.yaml').writeAsStringSync('name: pure\n');
+    Directory('${pkg.path}/.dart_tool').createSync();
+
+    final rule = CleanupRule(
+      id: 'flutter',
+      label: 'flutter',
+      description: '',
+      safety: Safety.confirm,
+      action: FlutterArtifacts(roots: [tmp.path]),
+    );
+
+    final scan = await engine.scan(rule);
+    expect(scan.targets, containsAll([
+      '${app.path}/build',
+      '${app.path}/.dart_tool',
+    ]));
+    // The pure Dart package's .dart_tool is not targeted.
+    expect(scan.targets, isNot(contains('${pkg.path}/.dart_tool')));
+
+    await engine.clean(rule);
+    expect(runner.calls.where((c) => c.$1 == 'osascript').length, greaterThan(0));
+  });
+
   test('trash uses osascript Finder and never sh -c', () async {
     final runner = FakeProcessRunner();
     final engine = CleanerEngine(runner: runner);
