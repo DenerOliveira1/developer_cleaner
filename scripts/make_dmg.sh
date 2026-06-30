@@ -12,6 +12,10 @@
 #   DEVDISK_SIGN_IDENTITY  e.g. "Developer ID Application: Your Name (TEAMID)"
 #   DEVDISK_NOTARY_PROFILE notarytool keychain profile name (default: devdisk-notary)
 #
+# Optional version override (otherwise pubspec.yaml's version is used):
+#   DEVDISK_BUILD_NAME     CFBundleShortVersionString, e.g. "1.2.3"
+#   DEVDISK_BUILD_NUMBER   CFBundleVersion, e.g. a CI run number
+#
 # Requires: flutter, create-dmg (brew install create-dmg), and — for signing —
 # a "Developer ID Application" cert in the keychain plus a stored notarytool
 # profile (xcrun notarytool store-credentials ...).
@@ -42,8 +46,16 @@ if $DO_SIGN && [ -z "$SIGN_IDENTITY" ]; then
   exit 1
 fi
 
-echo "▶ flutter build macos --release"
-flutter build macos --release
+# Optional version override (e.g. driven by a git tag in CI). When unset, the
+# version from pubspec.yaml is used. Values are simple (X.Y.Z / integer), so the
+# unquoted expansion below is intentional.
+BUILD_FLAGS=""
+[ -n "${DEVDISK_BUILD_NAME:-}" ] && BUILD_FLAGS="$BUILD_FLAGS --build-name=$DEVDISK_BUILD_NAME"
+[ -n "${DEVDISK_BUILD_NUMBER:-}" ] && BUILD_FLAGS="$BUILD_FLAGS --build-number=$DEVDISK_BUILD_NUMBER"
+
+echo "▶ flutter build macos --release$BUILD_FLAGS"
+# shellcheck disable=SC2086
+flutter build macos --release $BUILD_FLAGS
 [ -d "$RELEASE_DIR/$APP_BUNDLE" ] || { echo "❌ missing $APP_BUNDLE"; exit 1; }
 
 if $DO_SIGN; then

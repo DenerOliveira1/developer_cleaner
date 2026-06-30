@@ -117,6 +117,8 @@ git tag v1.0.0
 git push origin v1.0.0   # builds the signed DMG and publishes a GitHub Release
 ```
 
+The tag (minus the `v`) becomes the app version (`CFBundleShortVersionString`); the Actions run number becomes the build number (`CFBundleVersion`).
+
 ### Architecture
 
 Clean Architecture, `presentation → domain ← data`, with the dangerous engine hidden behind a `CleanerRepository` + an injectable `ProcessRunner` (fakeable in tests).
@@ -254,6 +256,8 @@ Exporte o `.p12` pelo **Acesso às Chaves** (*Meus Certificados* → seu *Develo
 git tag v1.0.0
 git push origin v1.0.0   # builda o DMG assinado e publica um GitHub Release
 ```
+
+A tag (sem o `v`) vira a versão do app (`CFBundleShortVersionString`); o número do run do Actions vira o build number (`CFBundleVersion`).
 
 ### Arquitetura
 

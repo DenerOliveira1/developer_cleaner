@@ -66,6 +66,16 @@ jobs:
       - name: Generate localizations
         run: flutter gen-l10n
 
+      # On a v* tag, use it as the version name (X.Y.Z); the Actions run number
+      # becomes the build number (CFBundleVersion). make_dmg.sh reads both.
+      - name: Derive app version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            NAME="${GITHUB_REF#refs/tags/}"
+            echo "DEVDISK_BUILD_NAME=${NAME#v}" >> "$GITHUB_ENV"
+          fi
+          echo "DEVDISK_BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
+
       # Import the Developer ID cert into a throwaway keychain and make it the
       # default so codesign and notarytool both find it.
       - name: Import Developer ID certificate
