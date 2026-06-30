@@ -110,37 +110,35 @@ class CleanerEngine {
     return (remove: remove, keepNote: keepNote);
   }
 
-  /// Plan for [DeleteSimRuntimes]: keep the [keep] newest **available iOS**
-  /// runtimes (by version), remove the rest. Returns the runtime identifiers
-  /// to delete, human-readable labels, their on-disk roots, and the kept note.
-  Future<
-      ({
-        List<String> ids,
-        List<String> labels,
-        List<String> paths,
-        String? keepNote
-      })> _simRuntimePlan(int keep) async {
-    final res = await _runner.run('xcrun', ['simctl', 'list', 'runtimes', '-j']);
+  /// Plan for [DeleteSimRuntimes]: keep the [keep] newest **deletable iOS**
+  /// simulator runtime disk images (by version), remove the rest.
+  ///
+  /// Uses `simctl runtime list -j` (a map keyed by image UUID) — that UUID is
+  /// what `simctl runtime delete` expects (the SimRuntime identifier does NOT
+  /// work), and the entries carry `sizeBytes` so no `du` is needed.
+  Future<({List<String> ids, List<String> labels, int bytes, String? keepNote})>
+      _simRuntimePlan(int keep) async {
+    final res = await _runner.run('xcrun', ['simctl', 'runtime', 'list', '-j']);
     final out = (res.stdout as String?) ?? '';
     if (out.trim().isEmpty) {
-      return (ids: <String>[], labels: <String>[], paths: <String>[], keepNote: null);
+      return (ids: <String>[], labels: <String>[], bytes: 0, keepNote: null);
     }
-    final list = ((jsonDecode(out) as Map)['runtimes'] as List?) ?? [];
-    final runtimes = list
+    final map = (jsonDecode(out) as Map).cast<String, dynamic>();
+    final runtimes = map.values
         .cast<Map<String, dynamic>>()
-        .where((r) => r['platform'] == 'iOS' && r['isAvailable'] == true)
+        .where((r) =>
+            r['platformIdentifier'] == 'com.apple.platform.iphonesimulator' &&
+            r['deletable'] == true)
         .toList()
       ..sort((a, b) =>
           _compareVersions('${b['version']}', '${a['version']}')); // desc
     final remove = runtimes.skip(keep).toList();
     return (
-      ids: remove.map((r) => '${r['identifier']}').toList(),
-      labels: remove.map((r) => '${r['name']} (${r['identifier']})').toList(),
-      paths: remove
-          .map((r) => '${r['runtimeRoot'] ?? r['bundlePath'] ?? ''}')
-          .where((p) => p.isNotEmpty)
-          .toList(),
-      keepNote: runtimes.take(keep).map((r) => '${r['name']}').join(', '),
+      ids: remove.map((r) => '${r['identifier']}').toList(), // image UUID
+      labels: remove.map((r) => 'iOS ${r['version']} (${r['build']})').toList(),
+      bytes: remove.fold<int>(
+          0, (s, r) => s + ((r['sizeBytes'] as num?)?.toInt() ?? 0)),
+      keepNote: runtimes.take(keep).map((r) => 'iOS ${r['version']}').join(', '),
     );
   }
 
@@ -181,7 +179,7 @@ class CleanerEngine {
         final plan = await _simRuntimePlan(keep);
         return ScanResult(
           rule: rule,
-          bytes: await du(plan.paths), // du over the runtime roots (slow-ish)
+          bytes: plan.bytes, // from sizeBytes — fast and accurate
           targets: plan.labels,
           keepNote: plan.keepNote,
         );

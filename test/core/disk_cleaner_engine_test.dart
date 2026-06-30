@@ -144,13 +144,16 @@ void main() {
 
   test('DeleteSimRuntimes keeps the latest iOS runtime, deletes older ones',
       () async {
-    const json = '''
-    {"runtimes":[
-      {"identifier":"iOS-18-0","version":"18.0","name":"iOS 18.0","isAvailable":true,"platform":"iOS"},
-      {"identifier":"iOS-18-5","version":"18.5","name":"iOS 18.5","isAvailable":true,"platform":"iOS"},
-      {"identifier":"iOS-26-5","version":"26.5","name":"iOS 26.5","isAvailable":true,"platform":"iOS"},
-      {"identifier":"watch-11","version":"11.0","name":"watchOS 11","isAvailable":true,"platform":"watchOS"}
-    ]}''';
+    // `simctl runtime list -j` shape: a map keyed by disk-image UUID.
+    const ios = 'com.apple.platform.iphonesimulator';
+    const watch = 'com.apple.platform.watchsimulator';
+    final json = '''
+    {
+      "UUID-180": {"identifier":"UUID-180","version":"18.0","build":"22A","platformIdentifier":"$ios","deletable":true,"sizeBytes":8000000000},
+      "UUID-185": {"identifier":"UUID-185","version":"18.5","build":"22F","platformIdentifier":"$ios","deletable":true,"sizeBytes":9000000000},
+      "UUID-265": {"identifier":"UUID-265","version":"26.5","build":"23F","platformIdentifier":"$ios","deletable":true,"sizeBytes":8000000000},
+      "UUID-watch": {"identifier":"UUID-watch","version":"11.0","build":"x","platformIdentifier":"$watch","deletable":true,"sizeBytes":5000000000}
+    }''';
     final runner = FakeProcessRunner({'xcrun': ProcessResult(0, 0, json, '')});
     final engine = CleanerEngine(runner: runner);
     const rule = CleanupRule(
@@ -165,14 +168,16 @@ void main() {
     expect(scan.keepNote, 'iOS 26.5'); // newest by version
     expect(scan.targets.length, 2); // 18.0 + 18.5; watchOS filtered out
     expect(scan.targets.any((t) => t.contains('18.0')), isTrue);
+    expect(scan.bytes, 8000000000 + 9000000000); // sum of removed sizeBytes
 
     await engine.clean(rule);
     final deletes = runner.calls
         .where((c) => c.$1 == 'xcrun' && c.$2.contains('delete'))
         .toList();
     expect(deletes.length, 2);
-    expect(deletes.any((c) => c.$2.contains('iOS-18-0')), isTrue);
-    expect(deletes.any((c) => c.$2.contains('iOS-26-5')), isFalse); // kept
+    // Deletes by image UUID (not the SimRuntime identifier).
+    expect(deletes.any((c) => c.$2.contains('UUID-180')), isTrue);
+    expect(deletes.any((c) => c.$2.contains('UUID-265')), isFalse); // kept
   });
 
   test('trash uses osascript Finder and never sh -c', () async {
