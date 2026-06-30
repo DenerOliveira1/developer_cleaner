@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # ============================================================
-# Empacota o DevDisk Cleaner num .dmg (macOS, fora da App Store).
+# Empacota o DevDisk Cleaner num .dmg (macOS, fora da App Store),
+# assinado com Developer ID e notarizado pela Apple.
 #
 # Uso:
-#   ./scripts/make_dmg.sh
+#   ./scripts/make_dmg.sh            # build + assina + DMG + notariza + staple
+#   ./scripts/make_dmg.sh --no-sign  # só build + DMG (sem assinar/notarizar)
 #
-# Requer: flutter, create-dmg (brew install create-dmg).
+# Requer: flutter, create-dmg, e (p/ assinar) o cert "Developer ID
+# Application" na Keychain + perfil do notarytool ($NOTARY_PROFILE).
 # Saída:  dist/DevDisk Cleaner.dmg
 # ============================================================
 set -euo pipefail
@@ -16,28 +19,34 @@ RELEASE_DIR="build/macos/Build/Products/Release"
 DIST_DIR="dist"
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 
+SIGN_IDENTITY="Developer ID Application: Dener Oliveira (6DCF2LC242)"
+NOTARY_PROFILE="devdisk-notary"
+ENTITLEMENTS="macos/Runner/Release.entitlements"
+
+DO_SIGN=true
+[ "${1:-}" = "--no-sign" ] && DO_SIGN=false
+
 cd "$(dirname "$0")/.."
 
 echo "▶ flutter build macos --release"
 flutter build macos --release
+[ -d "$RELEASE_DIR/$APP_BUNDLE" ] || { echo "❌ não achei $APP_BUNDLE"; exit 1; }
 
-if [ ! -d "$RELEASE_DIR/$APP_BUNDLE" ]; then
-  echo "❌ Não encontrei $RELEASE_DIR/$APP_BUNDLE"
-  exit 1
+if $DO_SIGN; then
+  echo "▶ codesign (Developer ID + hardened runtime)"
+  codesign --deep --force --options runtime --timestamp \
+    --entitlements "$ENTITLEMENTS" \
+    --sign "$SIGN_IDENTITY" \
+    "$RELEASE_DIR/$APP_BUNDLE"
+  codesign --verify --deep --strict --verbose=2 "$RELEASE_DIR/$APP_BUNDLE"
 fi
-
-# --- (opcional) Assinatura com Developer ID — antes de notarizar ---
-# Requer o certificado "Developer ID Application" (Apple Developer Program pago).
-# codesign --deep --force --options runtime \
-#   --sign "Developer ID Application: SEU NOME (TEAMID)" \
-#   "$RELEASE_DIR/$APP_BUNDLE"
 
 mkdir -p "$DIST_DIR"
 rm -f "$DMG_PATH"
 
 echo "▶ create-dmg"
-# create-dmg pode retornar !=0 mesmo gerando o DMG (quirk ao estilizar via
-# AppleScript). Por isso não usamos 'set -e' aqui e checamos o arquivo no fim.
+# create-dmg pode sair !=0 mesmo gerando o DMG (quirk do AppleScript); checamos
+# o arquivo no fim em vez de confiar no exit code.
 set +e
 create-dmg \
   --volname "$APP_NAME" \
@@ -50,19 +59,18 @@ create-dmg \
   "$DMG_PATH" \
   "$RELEASE_DIR/$APP_BUNDLE"
 set -e
-
-if [ ! -f "$DMG_PATH" ]; then
-  echo "❌ Falha ao gerar o DMG."
-  exit 1
-fi
+[ -f "$DMG_PATH" ] || { echo "❌ falha ao gerar o DMG"; exit 1; }
 echo "✓ DMG: $DMG_PATH"
 
-# --- (opcional) Notarização — requer Developer ID + perfil do notarytool ---
-# Configurar UMA vez (guarda credenciais no Keychain):
-#   xcrun notarytool store-credentials devdisk-notary \
-#     --apple-id "SEU_APPLE_ID" --team-id "TEAMID" \
-#     --password "SENHA_ESPECIFICA_DE_APP"
-# Depois, a cada release:
-#   xcrun notarytool submit "$DMG_PATH" --keychain-profile devdisk-notary --wait
-#   xcrun stapler staple "$DMG_PATH"
-#   spctl -a -t open --context context:primary-signature -v "$DMG_PATH"  # valida
+if $DO_SIGN; then
+  echo "▶ codesign do DMG (p/ o próprio .dmg ter assinatura Developer ID)"
+  codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG_PATH"
+  echo "▶ notarytool submit (aguarda o resultado da Apple)…"
+  xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait
+  echo "▶ stapler staple"
+  xcrun stapler staple "$DMG_PATH"
+  echo "▶ validação Gatekeeper (informativa)"
+  spctl -a -t open --context context:primary-signature -v "$DMG_PATH" \
+    || echo "  (aviso: spctl não avaliou via assinatura — o staple já foi validado)"
+  echo "✓ DMG assinado e notarizado: $DMG_PATH"
+fi
