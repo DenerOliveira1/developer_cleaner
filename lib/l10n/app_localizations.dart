@@ -344,6 +344,42 @@ abstract class AppLocalizations {
   /// **'Something went wrong.'**
   String get genericError;
 
+  /// No description provided for @dryRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Dry run'**
+  String get dryRun;
+
+  /// No description provided for @macosOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'DevDisk Cleaner runs on macOS only.'**
+  String get macosOnly;
+
+  /// No description provided for @errTrashMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t move to the Trash.'**
+  String get errTrashMove;
+
+  /// No description provided for @errEmptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t empty the Trash.'**
+  String get errEmptyTrash;
+
+  /// No description provided for @errRemoveRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the simulator runtime.'**
+  String get errRemoveRuntime;
+
+  /// No description provided for @errRunCommand.
+  ///
+  /// In en, this message translates to:
+  /// **'The command failed.'**
+  String get errRunCommand;
+
   /// No description provided for @scanAgain.
   ///
   /// In en, this message translates to:

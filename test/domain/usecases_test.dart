@@ -55,13 +55,17 @@ void main() {
       when(() => repo.clean(any(), dryRun: any(named: 'dryRun')))
           .thenAnswer((inv) async {
         final r = inv.positionalArguments.first as CleanupRule;
-        if (r.id == 'boom') throw const CleanerException('kaboom');
+        if (r.id == 'boom') {
+          throw const CleanerException(CleanerErrorCode.trashMove,
+              detail: 'kaboom');
+        }
       });
 
       final failures = await CleanRules(repo)(rules);
 
       expect(failures.map((f) => f.ruleId), ['boom']);
-      expect(failures.single.message, contains('kaboom'));
+      expect(failures.single.code, CleanerErrorCode.trashMove);
+      expect(failures.single.detail, contains('kaboom'));
       // All three were still attempted.
       verify(() => repo.clean(any(), dryRun: any(named: 'dryRun'))).called(3);
     });

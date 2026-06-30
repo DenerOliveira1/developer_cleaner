@@ -70,6 +70,12 @@
   "emptyTrash": "Empty Trash",
 
   "genericError": "Something went wrong.",
+  "dryRun": "Dry run",
+  "macosOnly": "DevDisk Cleaner runs on macOS only.",
+  "errTrashMove": "Couldn't move to the Trash.",
+  "errEmptyTrash": "Couldn't empty the Trash.",
+  "errRemoveRuntime": "Couldn't remove the simulator runtime.",
+  "errRunCommand": "The command failed.",
   "scanAgain": "Scan again",
   "cleanFailures": "{count, plural, =1{1 rule could not be cleaned} other{{count} rules could not be cleaned}}",
   "@cleanFailures": {

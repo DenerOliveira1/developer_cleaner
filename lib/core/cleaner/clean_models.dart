@@ -133,10 +133,18 @@ class DiskStats {
   int get usedBytes => totalBytes - freeBytes;
 }
 
-/// Raised when a cleaning operation fails. Carries a user-facing message.
+/// Identifies an engine failure so the presentation layer can localize it. The
+/// engine stays Flutter-free and carries no user-facing text — only the code
+/// plus a raw [CleanerException.detail] (path/stderr) for diagnostics.
+enum CleanerErrorCode { trashMove, emptyTrash, removeRuntime, runCommand }
+
+/// Raised when a cleaning operation fails. Localized at the UI boundary by
+/// mapping [code] to an ARB string; [detail] is the raw, non-localized
+/// diagnostic (offending path / command stderr).
 class CleanerException implements Exception {
-  final String message;
-  const CleanerException(this.message);
+  final CleanerErrorCode code;
+  final String? detail;
+  const CleanerException(this.code, {this.detail});
   @override
-  String toString() => message;
+  String toString() => detail == null ? code.name : '${code.name} — $detail';
 }

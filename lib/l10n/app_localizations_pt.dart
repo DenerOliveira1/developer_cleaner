@@ -146,6 +146,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get genericError => 'Algo deu errado.';
 
   @override
+  String get dryRun => 'Dry-run';
+
+  @override
+  String get macosOnly => 'DevDisk Cleaner roda apenas no macOS.';
+
+  @override
+  String get errTrashMove => 'Falha ao mover para a Lixeira.';
+
+  @override
+  String get errEmptyTrash => 'Falha ao esvaziar a Lixeira.';
+
+  @override
+  String get errRemoveRuntime => 'Falha ao remover o runtime de simulador.';
+
+  @override
+  String get errRunCommand => 'O comando falhou.';
+
+  @override
   String get scanAgain => 'Escanear novamente';
 
   @override

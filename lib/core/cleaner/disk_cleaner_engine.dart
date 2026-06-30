@@ -59,8 +59,8 @@ class CleanerEngine {
     final script = 'tell application "Finder" to delete POSIX file "$path"';
     final res = await _runner.run('osascript', ['-e', script]);
     if (res.exitCode != 0) {
-      throw CleanerException(
-          'Falha ao mover para a Lixeira: $path — ${res.stderr}');
+      throw CleanerException(CleanerErrorCode.trashMove,
+          detail: '$path — ${res.stderr}');
     }
   }
 
@@ -77,7 +77,8 @@ class CleanerEngine {
       final res = await _runner.run(
           'osascript', ['-e', 'tell application "Finder" to delete {$list}']);
       if (res.exitCode != 0) {
-        throw CleanerException('Falha ao mover para a Lixeira — ${res.stderr}');
+        throw CleanerException(CleanerErrorCode.trashMove,
+            detail: '${res.stderr}');
       }
     }
   }
@@ -94,7 +95,8 @@ class CleanerEngine {
     final res = await _runner.run(
         'osascript', ['-e', 'tell application "Finder" to empty trash']);
     if (res.exitCode != 0) {
-      throw CleanerException('Falha ao esvaziar a Lixeira — ${res.stderr}');
+      throw CleanerException(CleanerErrorCode.emptyTrash,
+          detail: '${res.stderr}');
     }
   }
 
@@ -264,8 +266,8 @@ class CleanerEngine {
         if (dryRun) return;
         final res = await _runner.run(executable, args);
         if (res.exitCode != 0) {
-          throw CleanerException(
-              'Comando falhou: $executable ${args.join(' ')} — ${res.stderr}');
+          throw CleanerException(CleanerErrorCode.runCommand,
+              detail: '$executable ${args.join(' ')} — ${res.stderr}');
         }
       case KeepLatest(:final parentDir, :final namePrefix, :final keep):
         final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep);
@@ -280,8 +282,8 @@ class CleanerEngine {
           final res =
               await _runner.run('xcrun', ['simctl', 'runtime', 'delete', id]);
           if (res.exitCode != 0) {
-            throw CleanerException(
-                'Falha ao remover runtime $id — ${res.stderr}');
+            throw CleanerException(CleanerErrorCode.removeRuntime,
+                detail: '$id — ${res.stderr}');
           }
         }
       case ProjectArtifacts a:

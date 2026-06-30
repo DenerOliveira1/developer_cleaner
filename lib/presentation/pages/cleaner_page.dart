@@ -114,7 +114,8 @@ class _CleanerPageState extends State<CleanerPage>
 
   Widget _body(BuildContext context, CleanerState s, AppLocalizations str) {
     return switch (s.phase) {
-      CleanerPhase.error => _Error(message: s.error ?? str.genericError),
+      CleanerPhase.error =>
+        _Error(message: _errorText(str, s.errorCode), detail: s.error),
       CleanerPhase.scanning => _scanning(s, str),
       CleanerPhase.results => _results(context, s, str),
       CleanerPhase.cleaning => _cleaning(s, str),
@@ -420,9 +421,8 @@ class _CleanerPageState extends State<CleanerPage>
 
   // ── Cleaning ──────────────────────────────────────────────────────────────
   Widget _cleaning(CleanerState s, AppLocalizations str) {
-    final cur = s.cleaningRuleId == null
-        ? ''
-        : (s.resultFor(s.cleaningRuleId!)?.rule.label ?? s.cleaningRuleId!);
+    final cur =
+        s.cleaningRuleId == null ? '' : str.ruleName(s.cleaningRuleId!);
     final total = s.cleanTotal == 0 ? 1 : s.cleanTotal;
     final fraction = ((s.cleanIndex + 1) / total).clamp(0.0, 1.0);
     return Center(
@@ -798,7 +798,7 @@ class _DryToggle extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 7),
-          Text('Dry-run',
+          Text(AppLocalizations.of(context).dryRun,
               style: AppText.mono(11,
                   color: value ? AppColors.accentMono : AppColors.faintest)),
         ],
@@ -1046,8 +1046,14 @@ class _FailureDetails extends StatelessWidget {
                 style: AppText.ui(12,
                     weight: FontWeight.w600, color: AppColors.rowName)),
             const SizedBox(height: 3),
-            Text(failures[i].message,
+            Text(_errorText(str, failures[i].code),
                 style: AppText.mono(11, color: AppColors.bodyDim, height: 1.4)),
+            if ((failures[i].detail ?? '').isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(failures[i].detail!,
+                  style:
+                      AppText.mono(10.5, color: AppColors.faintest3, height: 1.4)),
+            ],
           ],
         ],
       ),
@@ -1055,18 +1061,40 @@ class _FailureDetails extends StatelessWidget {
   }
 }
 
+/// Maps an engine [CleanerErrorCode] to its localized message (null → generic).
+String _errorText(AppLocalizations str, CleanerErrorCode? code) =>
+    switch (code) {
+      CleanerErrorCode.trashMove => str.errTrashMove,
+      CleanerErrorCode.emptyTrash => str.errEmptyTrash,
+      CleanerErrorCode.removeRuntime => str.errRemoveRuntime,
+      CleanerErrorCode.runCommand => str.errRunCommand,
+      null => str.genericError,
+    };
+
 class _Error extends StatelessWidget {
   final String message;
-  const _Error({required this.message});
+  final String? detail;
+  const _Error({required this.message, this.detail});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
-        child: Text(message,
-            textAlign: TextAlign.center,
-            style: AppText.ui(15, color: AppColors.danger)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message,
+                textAlign: TextAlign.center,
+                style: AppText.ui(15, color: AppColors.danger)),
+            if ((detail ?? '').isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(detail!,
+                  textAlign: TextAlign.center,
+                  style: AppText.mono(11.5, color: AppColors.faintest)),
+            ],
+          ],
+        ),
       ),
     );
   }

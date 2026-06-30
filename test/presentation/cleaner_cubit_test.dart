@@ -280,13 +280,15 @@ void main() {
     build: build,
     setUp: () {
       when(() => repo.trashSizeBytes()).thenAnswer((_) async => 0);
-      when(() => repo.emptyTrash())
-          .thenAnswer((_) async => throw const CleanerException('nope'));
+      when(() => repo.emptyTrash()).thenAnswer((_) async =>
+          throw const CleanerException(CleanerErrorCode.emptyTrash,
+              detail: 'nope'));
     },
     act: (c) => c.emptyTrash(),
     verify: (c) {
       expect(c.state.emptyingTrash, isFalse);
       expect(c.state.trashEmptied, isFalse);
+      expect(c.state.errorCode, CleanerErrorCode.emptyTrash);
       expect(c.state.error, contains('nope'));
     },
   );
@@ -294,11 +296,12 @@ void main() {
   blocTest<CleanerCubit, CleanerState>(
     'scanAll surfaces an error when scanning throws',
     build: build,
-    setUp: () => when(() => repo.scan(any()))
-        .thenThrow(const CleanerException('boom')),
+    setUp: () => when(() => repo.scan(any())).thenThrow(
+        const CleanerException(CleanerErrorCode.runCommand, detail: 'boom')),
     act: (c) => c.scanAll(),
     verify: (c) {
       expect(c.state.phase, CleanerPhase.error);
+      expect(c.state.errorCode, CleanerErrorCode.runCommand);
       expect(c.state.error, contains('boom'));
     },
   );

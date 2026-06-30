@@ -36,7 +36,8 @@ class CleanerCubit extends Cubit<CleanerState> {
   /// `du` breakdown runs so the loading readout shows a percentage + the path
   /// being measured (instead of a bare spinner).
   Future<void> init() async {
-    emit(state.copyWith(diskProgress: 0, diskScanPath: null, error: null));
+    emit(state.copyWith(
+        diskProgress: 0, diskScanPath: null, error: null, errorCode: null));
     try {
       final disk = await _repository.diskStats(
         onProgress: (p, path) =>
@@ -44,9 +45,17 @@ class CleanerCubit extends Cubit<CleanerState> {
       );
       emit(state.copyWith(disk: disk, diskProgress: 1, diskScanPath: null));
     } catch (e) {
-      emit(state.copyWith(phase: CleanerPhase.error, error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          phase: CleanerPhase.error, error: detail, errorCode: code));
     }
   }
+
+  /// Splits a caught error into (localizable code, raw detail). A
+  /// [CleanerException] carries both; anything else is generic (null code).
+  (CleanerErrorCode?, String) _errParts(Object e) => e is CleanerException
+      ? (e.code, e.detail ?? '')
+      : (null, e.toString());
 
   void setLang(AppLang lang) => emit(state.copyWith(lang: lang));
 
@@ -54,7 +63,10 @@ class CleanerCubit extends Cubit<CleanerState> {
   /// Results with the default selection (safe + actionable checked).
   Future<void> scanAll() async {
     emit(state.copyWith(
-        phase: CleanerPhase.scanning, scanProgress: 0, error: null));
+        phase: CleanerPhase.scanning,
+        scanProgress: 0,
+        error: null,
+        errorCode: null));
     try {
       final results = await _scanRules(
         _rules,
@@ -83,7 +95,9 @@ class CleanerCubit extends Cubit<CleanerState> {
         expandedId: expand,
       ));
     } catch (e) {
-      emit(state.copyWith(phase: CleanerPhase.error, error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          phase: CleanerPhase.error, error: detail, errorCode: code));
     }
   }
 
@@ -176,7 +190,10 @@ class CleanerCubit extends Cubit<CleanerState> {
   /// proceeds. Errors revert [emptyingTrash] so the CTA comes back.
   Future<void> emptyTrash() async {
     emit(state.copyWith(
-        emptyingTrash: true, emptyTrashProgress: 0, error: null));
+        emptyingTrash: true,
+        emptyTrashProgress: 0,
+        error: null,
+        errorCode: null));
     try {
       var initial = 0;
       try {
@@ -206,7 +223,9 @@ class CleanerCubit extends Cubit<CleanerState> {
       emit(state.copyWith(
           emptyingTrash: false, emptyTrashProgress: 1, trashEmptied: true));
     } catch (e) {
-      emit(state.copyWith(emptyingTrash: false, error: e.toString()));
+      final (code, detail) = _errParts(e);
+      emit(state.copyWith(
+          emptyingTrash: false, error: detail, errorCode: code));
     }
   }
 }

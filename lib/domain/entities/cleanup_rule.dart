@@ -4,4 +4,12 @@
 library;
 
 export 'package:developer_cleaner/core/cleaner/clean_models.dart'
-    show Safety, CleanAction, TrashPaths, RunCommand, KeepLatest, CleanupRule;
+    show
+        Safety,
+        CleanAction,
+        TrashPaths,
+        RunCommand,
+        KeepLatest,
+        CleanupRule,
+        CleanerException,
+        CleanerErrorCode;

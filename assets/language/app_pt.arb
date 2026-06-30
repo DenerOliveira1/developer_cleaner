@@ -49,6 +49,12 @@
   "emptyTrash": "Esvaziar Lixeira",
 
   "genericError": "Algo deu errado.",
+  "dryRun": "Dry-run",
+  "macosOnly": "DevDisk Cleaner roda apenas no macOS.",
+  "errTrashMove": "Falha ao mover para a Lixeira.",
+  "errEmptyTrash": "Falha ao esvaziar a Lixeira.",
+  "errRemoveRuntime": "Falha ao remover o runtime de simulador.",
+  "errRunCommand": "O comando falhou.",
   "scanAgain": "Escanear novamente",
   "cleanFailures": "{count, plural, =1{1 regra não pôde ser limpa} other{{count} regras não puderam ser limpas}}",
 

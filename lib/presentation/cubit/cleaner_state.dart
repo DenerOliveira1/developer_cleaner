@@ -48,7 +48,8 @@ class CleanerState extends Equatable {
   final bool trashEmptied;
   final CleanOutcome? outcome;
   final List<CleanFailure> failures;
-  final String? error;
+  final String? error; // raw diagnostic detail (non-localized)
+  final CleanerErrorCode? errorCode; // null = generic/unknown error
 
   const CleanerState({
     this.phase = CleanerPhase.idle,
@@ -71,6 +72,7 @@ class CleanerState extends Equatable {
     this.outcome,
     this.failures = const [],
     this.error,
+    this.errorCode,
   });
 
   ScanResult? resultFor(String id) {
@@ -126,6 +128,7 @@ class CleanerState extends Equatable {
     CleanOutcome? outcome,
     List<CleanFailure>? failures,
     Object? error = _undef,
+    Object? errorCode = _undef,
   }) {
     return CleanerState(
       phase: phase ?? this.phase,
@@ -151,6 +154,9 @@ class CleanerState extends Equatable {
       outcome: outcome ?? this.outcome,
       failures: failures ?? this.failures,
       error: identical(error, _undef) ? this.error : error as String?,
+      errorCode: identical(errorCode, _undef)
+          ? this.errorCode
+          : errorCode as CleanerErrorCode?,
     );
   }
 
@@ -176,5 +182,6 @@ class CleanerState extends Equatable {
         outcome,
         failures,
         error,
+        errorCode,
       ];
 }
