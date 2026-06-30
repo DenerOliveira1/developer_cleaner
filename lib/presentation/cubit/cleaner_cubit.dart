@@ -124,8 +124,11 @@ class CleanerCubit extends Cubit<CleanerState> {
       return;
     }
 
+    // Reversible rules (TrashPaths/KeepLatest/FlutterArtifacts) move bytes to
+    // the Trash — they don't free disk until it's emptied, so they count as
+    // "waiting in Trash", not "freed".
     final inTrash = selected
-        .where((r) => r.action is TrashPaths || r.action is KeepLatest)
+        .where((r) => isReversibleAction(r.action))
         .fold<int>(0, (sum, r) => sum + (state.resultFor(r.id)?.bytes ?? 0));
 
     // Cheap `df` (no `du`) so the Cleaning→Done transition isn't blocked.

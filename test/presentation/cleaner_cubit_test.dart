@@ -33,6 +33,13 @@ const _danger = CleanupRule(
   safety: Safety.danger,
   action: KeepLatest('/tmp/ndk', keep: 1),
 );
+const _flutter = CleanupRule(
+  id: 'flutter',
+  label: 'flutter',
+  description: '',
+  safety: Safety.confirm,
+  action: FlutterArtifacts(roots: ['/tmp/projects']),
+);
 const _rules = [_safe, _confirm, _danger];
 
 const _disk = DiskStats(totalBytes: 1000, freeBytes: 100, categories: []);
@@ -133,6 +140,33 @@ void main() {
       expect(c.state.outcome!.freedBytes, 150);
       // gradle(300) + ndk(500) are trash-type rules → 800 in Trash.
       expect(c.state.outcome!.inTrashBytes, 800);
+    },
+  );
+
+  blocTest<CleanerCubit, CleanerState>(
+    'a reversible Flutter-artifacts rule counts as in-Trash, not freed',
+    build: () => CleanerCubit(
+      scanRules: ScanRules(repo),
+      cleanRules: CleanRules(repo),
+      repository: repo,
+      rules: const [_flutter],
+    ),
+    seed: () => CleanerState(
+      phase: CleanerPhase.results,
+      disk: _disk, // freeBefore = 100
+      results: const [
+        ScanResult(rule: _flutter, bytes: 500, targets: ['/tmp/projects/a/build']),
+      ],
+      selectedRuleIds: const {'flutter'},
+    ),
+    act: (c) {
+      // Trashing doesn't free disk, so df is unchanged.
+      when(() => repo.diskFreeBytes()).thenAnswer((_) async => 100);
+      return c.cleanSelected();
+    },
+    verify: (c) {
+      expect(c.state.outcome!.inTrashBytes, 500); // went to Trash
+      expect(c.state.outcome!.freedBytes, 0); // not freed yet
     },
   );
 
