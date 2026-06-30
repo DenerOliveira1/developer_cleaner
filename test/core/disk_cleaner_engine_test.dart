@@ -142,6 +142,40 @@ void main() {
     expect(runner.calls.single.$2, isNot(contains('--volumes')));
   });
 
+  test('DeleteSimRuntimes keeps the latest iOS runtime, deletes older ones',
+      () async {
+    const json = '''
+    {"runtimes":[
+      {"identifier":"iOS-18-0","version":"18.0","name":"iOS 18.0","isAvailable":true,"platform":"iOS"},
+      {"identifier":"iOS-18-5","version":"18.5","name":"iOS 18.5","isAvailable":true,"platform":"iOS"},
+      {"identifier":"iOS-26-5","version":"26.5","name":"iOS 26.5","isAvailable":true,"platform":"iOS"},
+      {"identifier":"watch-11","version":"11.0","name":"watchOS 11","isAvailable":true,"platform":"watchOS"}
+    ]}''';
+    final runner = FakeProcessRunner({'xcrun': ProcessResult(0, 0, json, '')});
+    final engine = CleanerEngine(runner: runner);
+    const rule = CleanupRule(
+      id: 'simruntime',
+      label: 'simruntime',
+      description: '',
+      safety: Safety.danger,
+      action: DeleteSimRuntimes(keep: 1),
+    );
+
+    final scan = await engine.scan(rule);
+    expect(scan.keepNote, 'iOS 26.5'); // newest by version
+    expect(scan.bytes, isNull);
+    expect(scan.targets.length, 2); // 18.0 + 18.5; watchOS filtered out
+    expect(scan.targets.any((t) => t.contains('18.0')), isTrue);
+
+    await engine.clean(rule);
+    final deletes = runner.calls
+        .where((c) => c.$1 == 'xcrun' && c.$2.contains('delete'))
+        .toList();
+    expect(deletes.length, 2);
+    expect(deletes.any((c) => c.$2.contains('iOS-18-0')), isTrue);
+    expect(deletes.any((c) => c.$2.contains('iOS-26-5')), isFalse); // kept
+  });
+
   test('trash uses osascript Finder and never sh -c', () async {
     final runner = FakeProcessRunner();
     final engine = CleanerEngine(runner: runner);

@@ -5,6 +5,7 @@
 ///   dart run lib/core/cleaner/disk_cleaner_engine.dart --apply  # clean safe rules
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import '../process/process_runner.dart';
@@ -109,6 +110,43 @@ class CleanerEngine {
     return (remove: remove, keepNote: keepNote);
   }
 
+  /// Plan for [DeleteSimRuntimes]: keep the [keep] newest **available iOS**
+  /// runtimes (by version), remove the rest. Returns the runtime identifiers
+  /// to delete, human-readable labels, and the kept version note.
+  Future<({List<String> ids, List<String> labels, String? keepNote})>
+      _simRuntimePlan(int keep) async {
+    final res = await _runner.run('xcrun', ['simctl', 'list', 'runtimes', '-j']);
+    final out = (res.stdout as String?) ?? '';
+    if (out.trim().isEmpty) {
+      return (ids: <String>[], labels: <String>[], keepNote: null);
+    }
+    final list = ((jsonDecode(out) as Map)['runtimes'] as List?) ?? [];
+    final runtimes = list
+        .cast<Map<String, dynamic>>()
+        .where((r) => r['platform'] == 'iOS' && r['isAvailable'] == true)
+        .toList()
+      ..sort((a, b) =>
+          _compareVersions('${b['version']}', '${a['version']}')); // desc
+    final remove = runtimes.skip(keep).toList();
+    return (
+      ids: remove.map((r) => '${r['identifier']}').toList(),
+      labels: remove.map((r) => '${r['name']} (${r['identifier']})').toList(),
+      keepNote: runtimes.take(keep).map((r) => '${r['name']}').join(', '),
+    );
+  }
+
+  /// Numeric dotted-version compare (`18.10` > `18.9`).
+  static int _compareVersions(String a, String b) {
+    final pa = a.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final pb = b.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    for (var i = 0; i < pa.length || i < pb.length; i++) {
+      final x = i < pa.length ? pa[i] : 0;
+      final y = i < pb.length ? pb[i] : 0;
+      if (x != y) return x.compareTo(y);
+    }
+    return 0;
+  }
+
   /// Scans one rule: estimates reclaimable bytes and the affected paths.
   Future<ScanResult> scan(CleanupRule rule) async {
     switch (rule.action) {
@@ -128,6 +166,14 @@ class CleanerEngine {
           rule: rule,
           bytes: await du(plan.remove),
           targets: plan.remove,
+          keepNote: plan.keepNote,
+        );
+      case DeleteSimRuntimes(:final keep):
+        final plan = await _simRuntimePlan(keep);
+        return ScanResult(
+          rule: rule,
+          bytes: null, // runtime sizes aren't cheaply measurable
+          targets: plan.labels,
           keepNote: plan.keepNote,
         );
     }
@@ -159,6 +205,19 @@ class CleanerEngine {
         final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep);
         if (dryRun) return;
         await trashAll(plan.remove);
+      case DeleteSimRuntimes(:final keep):
+        final plan = await _simRuntimePlan(keep);
+        if (dryRun) return;
+        // Irreversible: simctl runtime delete (no Trash). One per runtime so a
+        // single failure doesn't abort the rest.
+        for (final id in plan.ids) {
+          final res =
+              await _runner.run('xcrun', ['simctl', 'runtime', 'delete', id]);
+          if (res.exitCode != 0) {
+            throw CleanerException(
+                'Falha ao remover runtime $id — ${res.stderr}');
+          }
+        }
     }
   }
 
@@ -228,7 +287,8 @@ const List<CleanupRule> kRules = [
     id: 'simun',
     label: 'Simuladores indisponíveis',
     description: 'Runtimes de simulador sem suporte no seu Xcode.',
-    safety: Safety.safe,
+    // IRREVERSÍVEL (simctl delete, sem Lixeira) → nunca 'safe' por padrão.
+    safety: Safety.confirm,
     action: RunCommand('xcrun', ['simctl', 'delete', 'unavailable']),
   ),
   CleanupRule(
@@ -236,9 +296,10 @@ const List<CleanupRule> kRules = [
     label: 'Caches do CoreSimulator',
     description: 'Dados de simulador em cache e snapshots de dispositivos.',
     safety: Safety.safe,
+    // Apenas o cache recriável. NUNCA incluir Cryptex/Devices/Volumes — são o
+    // runtime e os dados do simulador, não cache.
     action: TrashPaths([
       '~/Library/Developer/CoreSimulator/Caches',
-      '~/Library/Developer/CoreSimulator/Cryptex',
     ], contentsOnly: true),
   ),
   CleanupRule(
@@ -255,7 +316,8 @@ const List<CleanupRule> kRules = [
     id: 'brew',
     label: 'Limpeza do Homebrew',
     description: 'Downloads antigos e versões obsoletas de fórmulas.',
-    safety: Safety.safe,
+    // IRREVERSÍVEL (brew cleanup, sem Lixeira) → nunca 'safe' por padrão.
+    safety: Safety.confirm,
     action: RunCommand('brew', ['cleanup', '-s']),
   ),
   CleanupRule(
@@ -290,6 +352,14 @@ const List<CleanupRule> kRules = [
     safety: Safety.confirm,
     // NEVER add --volumes (spec §9.5).
     action: RunCommand('docker', ['system', 'prune', '-a', '-f']),
+  ),
+  CleanupRule(
+    id: 'simruntime',
+    label: 'Simulador iOS — runtimes antigos',
+    description:
+        'Mantém só o iOS mais recente; remove os runtimes antigos. Irreversível.',
+    safety: Safety.danger,
+    action: DeleteSimRuntimes(keep: 1),
   ),
 ];
 

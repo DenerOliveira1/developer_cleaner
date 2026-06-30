@@ -89,17 +89,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'Itens na Lixeira são recuperáveis até você esvaziá-la.';
 
   @override
-  String get dTitle => 'Remover versões antigas do Android NDK?';
+  String removeTitle(String name) {
+    return 'Remover $name?';
+  }
 
   @override
-  String get dBody1 => 'O NDK certo depende do ';
-
-  @override
-  String get dBody2 =>
-      ' dos seus projetos. Revise as versões abaixo antes de remover — a errada quebra builds nativos.';
-
-  @override
-  String get reviewed => 'Revisei as versões acima.';
+  String get reviewed => 'Revisei os itens acima.';
 
   @override
   String get cancel => 'Cancelar';
@@ -108,6 +103,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String moveTrash(String size) {
     return 'Mover $size para a Lixeira';
   }
+
+  @override
+  String get removePermanently => 'Remover permanentemente';
+
+  @override
+  String get permanentWarning => 'Permanente — não vai para a Lixeira.';
 
   @override
   String keeps(String version) {
@@ -188,6 +189,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'studio': 'Android Studio — versões antigas',
       'ndk': 'Android NDK — versões antigas',
       'docker': 'Docker — prune (sem volumes)',
+      'simruntime': 'Simulador iOS — runtimes antigos',
       'other': '',
     });
     return '$_temp0';
@@ -207,6 +209,8 @@ class AppLocalizationsPt extends AppLocalizations {
           'O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.',
       'docker':
           'Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.',
+      'simruntime':
+          'Mantém só o iOS mais recente; remove os runtimes antigos do simulador. Irreversível.',
       'other': '',
     });
     return '$_temp0';

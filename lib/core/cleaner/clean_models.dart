@@ -39,6 +39,19 @@ class KeepLatest extends CleanAction {
   const KeepLatest(this.parentDir, {this.namePrefix, this.keep = 1});
 }
 
+/// Keep the [keep] newest iOS simulator runtimes (by version) and permanently
+/// delete the rest via `simctl runtime delete`. **Irreversible** — runtimes
+/// don't go to the Trash.
+class DeleteSimRuntimes extends CleanAction {
+  final int keep;
+  const DeleteSimRuntimes({this.keep = 1});
+}
+
+/// Whether a rule's effect can be undone. File moves (Trash) are reversible;
+/// external commands (`simctl`/`docker`/`brew`) and runtime deletions are not.
+bool isReversibleAction(CleanAction action) =>
+    action is TrashPaths || action is KeepLatest;
+
 /// A declarative cleanup rule. [label]/[description] are defaults for the CLI
 /// and debugging; the UI overrides them per-language via the i18n dictionary
 /// keyed by [id].

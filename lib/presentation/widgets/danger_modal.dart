@@ -2,19 +2,23 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
-import '../../core/cleaner/clean_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 
-/// The NDK danger gate (spec §4). The destructive button stays disabled until
-/// the user ticks "I reviewed the versions above" — a deliberate re-read.
-/// Returns `true` if the user confirmed.
+/// Generic danger gate (spec §4), driven by the selected rule. The destructive
+/// button stays disabled until the user ticks "I reviewed the items above" — a
+/// deliberate re-read. When [permanent] is true the modal spells out that the
+/// action does not go to the Trash. Returns `true` if the user confirmed.
 Future<bool> showDangerModal(
   BuildContext context, {
-  required ScanResult ndk,
   required AppLocalizations str,
-  required String sizeLabel,
+  required String title,
+  required String body,
+  required List<String> targets,
+  required String confirmLabel,
+  String? keepNote,
+  bool permanent = false,
 }) async {
   final result = await showGeneralDialog<bool>(
     context: context,
@@ -27,7 +31,15 @@ Future<bool> showDangerModal(
       child: Opacity(
         opacity: anim.value,
         child: Center(
-          child: _DangerCard(ndk: ndk, str: str, sizeLabel: sizeLabel),
+          child: _DangerCard(
+            str: str,
+            title: title,
+            body: body,
+            targets: targets,
+            confirmLabel: confirmLabel,
+            keepNote: keepNote,
+            permanent: permanent,
+          ),
         ),
       ),
     ),
@@ -37,11 +49,22 @@ Future<bool> showDangerModal(
 }
 
 class _DangerCard extends StatefulWidget {
-  final ScanResult ndk;
   final AppLocalizations str;
-  final String sizeLabel;
-  const _DangerCard(
-      {required this.ndk, required this.str, required this.sizeLabel});
+  final String title;
+  final String body;
+  final List<String> targets;
+  final String confirmLabel;
+  final String? keepNote;
+  final bool permanent;
+  const _DangerCard({
+    required this.str,
+    required this.title,
+    required this.body,
+    required this.targets,
+    required this.confirmLabel,
+    required this.keepNote,
+    required this.permanent,
+  });
 
   @override
   State<_DangerCard> createState() => _DangerCardState();
@@ -64,9 +87,7 @@ class _DangerCardState extends State<_DangerCard> {
           border: Border.all(color: AppColors.borderModal),
           boxShadow: const [
             BoxShadow(
-                color: Color(0xCC000000),
-                blurRadius: 90,
-                offset: Offset(0, 40)),
+                color: Color(0xCC000000), blurRadius: 90, offset: Offset(0, 40)),
           ],
         ),
         child: Column(
@@ -85,35 +106,34 @@ class _DangerCardState extends State<_DangerCard> {
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text('!',
-                      style: AppText.space(20,
-                          wght: 700, color: AppColors.danger)),
+                      style:
+                          AppText.space(20, wght: 700, color: AppColors.danger)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(str.dTitle,
+                  child: Text(widget.title,
                       style: AppText.space(18,
                           wght: 600, color: AppColors.heroInk2)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            RichText(
-              text: TextSpan(children: [
-                TextSpan(
-                    text: str.dBody1,
-                    style: AppText.ui(13,
-                        color: AppColors.bodyDim, height: 1.5)),
-                TextSpan(
-                    text: 'ndkVersion',
-                    style: AppText.mono(13, color: AppColors.confirm)),
-                TextSpan(
-                    text: str.dBody2,
-                    style: AppText.ui(13,
-                        color: AppColors.bodyDim, height: 1.5)),
-              ]),
-            ),
+            Text(widget.body,
+                style: AppText.ui(13, color: AppColors.bodyDim, height: 1.5)),
+            if (widget.permanent) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.report_gmailerrorred_outlined,
+                      size: 15, color: AppColors.danger),
+                  const SizedBox(width: 6),
+                  Text(str.permanentWarning,
+                      style: AppText.mono(11.5, color: AppColors.danger)),
+                ],
+              ),
+            ],
             const SizedBox(height: 14),
-            _PathBox(ndk: widget.ndk, str: str),
+            _PathBox(targets: widget.targets, keepNote: widget.keepNote, str: str),
             const SizedBox(height: 14),
             GestureDetector(
               onTap: () => setState(() => _reviewed = !_reviewed),
@@ -153,7 +173,7 @@ class _DangerCardState extends State<_DangerCard> {
                     onTap: () => Navigator.of(context).pop(false)),
                 const SizedBox(width: 10),
                 _DangerButton(
-                  label: str.moveTrash(widget.sizeLabel),
+                  label: widget.confirmLabel,
                   enabled: _reviewed,
                   onTap: () => Navigator.of(context).pop(true),
                 ),
@@ -167,9 +187,11 @@ class _DangerCardState extends State<_DangerCard> {
 }
 
 class _PathBox extends StatelessWidget {
-  final ScanResult ndk;
+  final List<String> targets;
+  final String? keepNote;
   final AppLocalizations str;
-  const _PathBox({required this.ndk, required this.str});
+  const _PathBox(
+      {required this.targets, required this.keepNote, required this.str});
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +206,7 @@ class _PathBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...ndk.targets.map((t) => Padding(
+          ...targets.map((t) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: RichText(
                   text: TextSpan(children: [
@@ -197,9 +219,9 @@ class _PathBox extends StatelessWidget {
                   ]),
                 ),
               )),
-          if (ndk.keepNote != null) ...[
+          if (keepNote != null) ...[
             const SizedBox(height: 6),
-            Text('✓ ${str.keeps(ndk.keepNote!)}',
+            Text('✓ ${str.keeps(keepNote!)}',
                 style: AppText.mono(11.5, color: AppColors.safe)),
           ],
         ],

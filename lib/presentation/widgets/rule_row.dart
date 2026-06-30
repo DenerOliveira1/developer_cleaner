@@ -205,6 +205,18 @@ class _Preview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (!isReversibleAction(result.rule.action)) ...[
+            Row(
+              children: [
+                const Icon(Icons.report_gmailerrorred_outlined,
+                    size: 13, color: AppColors.danger),
+                const SizedBox(width: 5),
+                Text(str.permanentWarning,
+                    style: AppText.mono(11, color: AppColors.danger)),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           if (empty)
             Text(str.nothing,
                 style: AppText.mono(12, color: AppColors.bodyDim))

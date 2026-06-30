@@ -242,28 +242,16 @@ abstract class AppLocalizations {
   /// **'Trashed items are recoverable until you empty the Trash.'**
   String get recoverNote;
 
-  /// No description provided for @dTitle.
+  /// No description provided for @removeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove old Android NDK versions?'**
-  String get dTitle;
-
-  /// No description provided for @dBody1.
-  ///
-  /// In en, this message translates to:
-  /// **'The right NDK depends on your projects’ '**
-  String get dBody1;
-
-  /// No description provided for @dBody2.
-  ///
-  /// In en, this message translates to:
-  /// **'. Review the versions below before removing — the wrong one breaks native builds.'**
-  String get dBody2;
+  /// **'Remove {name}?'**
+  String removeTitle(String name);
 
   /// No description provided for @reviewed.
   ///
   /// In en, this message translates to:
-  /// **'I reviewed the versions above.'**
+  /// **'I reviewed the items above.'**
   String get reviewed;
 
   /// No description provided for @cancel.
@@ -277,6 +265,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move {size} to Trash'**
   String moveTrash(String size);
+
+  /// No description provided for @removePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove permanently'**
+  String get removePermanently;
+
+  /// No description provided for @permanentWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent — does not go to the Trash.'**
+  String get permanentWarning;
 
   /// No description provided for @keeps.
   ///
@@ -359,13 +359,13 @@ abstract class AppLocalizations {
   /// No description provided for @ruleName.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} other{}}'**
+  /// **'{ruleId, select, derived{Xcode DerivedData} simun{Unavailable simulators} coresim{CoreSimulator caches} gradle{Gradle caches} brew{Homebrew cleanup} intellij{IntelliJ — old versions} studio{Android Studio — old versions} ndk{Android NDK — old versions} docker{Docker — prune (no volumes)} simruntime{iOS Simulator — old runtimes} other{}}'**
   String ruleName(String ruleId);
 
   /// No description provided for @ruleDesc.
   ///
   /// In en, this message translates to:
-  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} other{}}'**
+  /// **'{ruleId, select, derived{Build intermediates Xcode regenerates on the next build.} simun{Simulator runtimes no longer supported by your Xcode.} coresim{Cached simulator data and device snapshots.} gradle{Downloaded dependencies Gradle re-fetches as needed.} brew{Old downloads and stale formula versions.} intellij{Caches and plugins from IDE versions you no longer run.} studio{Caches from Android Studio releases you have replaced.} ndk{The right NDK depends on your projects’ ndkVersion. Review before removing.} docker{Dangling images and stopped build layers. Named volumes are left untouched.} simruntime{Keeps only the latest iOS; removes old simulator runtimes. Irreversible.} other{}}'**
   String ruleDesc(String ruleId);
 }
 

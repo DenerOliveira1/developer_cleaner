@@ -396,11 +396,19 @@ class _CleanerPageState extends State<CleanerPage>
       final dangerResult = s.results.firstWhere(
         (r) => r.rule.safety == Safety.danger && s.isSelected(r.rule.id),
       );
+      final rule = dangerResult.rule;
+      final permanent = !isReversibleAction(rule.action);
       final ok = await showDangerModal(
         context,
-        ndk: dangerResult,
         str: str,
-        sizeLabel: _hero(dangerResult.bytes ?? 0),
+        title: str.removeTitle(str.ruleName(rule.id)),
+        body: str.ruleDesc(rule.id),
+        targets: dangerResult.targets,
+        keepNote: dangerResult.keepNote,
+        permanent: permanent,
+        confirmLabel: permanent
+            ? str.removePermanently
+            : str.moveTrash(_hero(dangerResult.bytes ?? 0)),
       );
       if (!ok) return;
       cubit.confirmDanger();
