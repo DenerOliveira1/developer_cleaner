@@ -66,7 +66,7 @@ class _LangButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF33303D) : const Color(0x00000000),
+          color: active ? AppColors.toggleActive : null,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(

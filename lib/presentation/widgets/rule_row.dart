@@ -132,11 +132,11 @@ class _Checkbox extends StatelessWidget {
             width: 1.5,
             color: !selectable
                 ? AppColors.border
-                : (checked ? AppColors.accentLight : const Color(0xFF3A3743)),
+                : (checked ? AppColors.accentLight : AppColors.borderControl),
           ),
         ),
         child: checked
-            ? const Icon(Icons.check, size: 15, color: Color(0xFF0E1622))
+            ? const Icon(Icons.check, size: 15, color: AppColors.onAccent)
             : null,
       ),
     );

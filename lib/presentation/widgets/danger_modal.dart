@@ -24,7 +24,7 @@ Future<bool> showDangerModal(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'danger',
-    barrierColor: const Color(0xA8070609),
+    barrierColor: AppColors.scrim,
     pageBuilder: (_, _, _) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, _, _) => BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
@@ -87,7 +87,7 @@ class _DangerCardState extends State<_DangerCard> {
           border: Border.all(color: AppColors.borderModal),
           boxShadow: const [
             BoxShadow(
-                color: Color(0xCC000000), blurRadius: 90, offset: Offset(0, 40)),
+                color: AppColors.modalShadow, blurRadius: 90, offset: Offset(0, 40)),
           ],
         ),
         child: Column(
@@ -151,11 +151,11 @@ class _DangerCardState extends State<_DangerCard> {
                           width: 1.5,
                           color: _reviewed
                               ? AppColors.accentLight
-                              : const Color(0xFF3A3743)),
+                              : AppColors.borderControl),
                     ),
                     child: _reviewed
                         ? const Icon(Icons.check,
-                            size: 14, color: Color(0xFF0E1622))
+                            size: 14, color: AppColors.onAccent)
                         : null,
                   ),
                   const SizedBox(width: 10),

@@ -717,7 +717,7 @@ class _AccentButton extends StatelessWidget {
         child: Text(label,
             style: AppText.space(16,
                 wght: 600,
-                color: enabled ? const Color(0xFF0E1622) : AppColors.faintest2)),
+                color: enabled ? AppColors.onAccent : AppColors.faintest2)),
       ),
     );
   }
