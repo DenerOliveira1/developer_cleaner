@@ -89,6 +89,34 @@ export DEVDISK_NOTARY_PROFILE="devdisk-notary"   # optional (this is the default
 
 The script reads the signing identity from the environment, so nothing personal is committed.
 
+### Continuous integration & releases (GitHub Actions)
+
+Two workflows live in `.github/workflows/`:
+
+- **`ci.yml`** — on every PR and push to `main`: `analyze` + `test` on Ubuntu, then a macOS `--debug` sanity build (only if the tests pass).
+- **`release.yml`** — on a `v*` tag (or a manual *Run workflow*): reuses `scripts/make_dmg.sh` to build, sign, notarize and staple the DMG, then attaches it to a GitHub Release.
+
+**One-time setup** — add these repository secrets (*Settings → Secrets and variables → Actions*):
+
+| Secret | Value |
+|---|---|
+| `MACOS_CERTIFICATE_P12` | base64 of the *Developer ID Application* `.p12` (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PASSWORD` | password set when exporting that `.p12` |
+| `KEYCHAIN_PASSWORD` | any string (temporary keychain password on the runner) |
+| `DEVDISK_SIGN_IDENTITY` | `Developer ID Application: Your Name (TEAMID)` |
+| `APPLE_ID` | Apple ID email used for notarization |
+| `APPLE_TEAM_ID` | 10-char Apple Developer Team ID |
+| `APPLE_APP_SPECIFIC_PASSWORD` | app-specific password for that Apple ID |
+
+Export the `.p12` from **Keychain Access** (*My Certificates* → your *Developer ID Application* → right-click → *Export*).
+
+**Cut a release:**
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0   # builds the signed DMG and publishes a GitHub Release
+```
+
 ### Architecture
 
 Clean Architecture, `presentation → domain ← data`, with the dangerous engine hidden behind a `CleanerRepository` + an injectable `ProcessRunner` (fakeable in tests).
@@ -198,6 +226,34 @@ export DEVDISK_NOTARY_PROFILE="devdisk-notary"   # opcional (este é o padrão)
 ```
 
 O script lê a identidade de assinatura do ambiente, então nada pessoal é commitado.
+
+### Integração contínua & releases (GitHub Actions)
+
+Dois workflows ficam em `.github/workflows/`:
+
+- **`ci.yml`** — em cada PR e push na `main`: `analyze` + `test` no Ubuntu e, em seguida, um build de sanidade `--debug` no macOS (só se os testes passarem).
+- **`release.yml`** — numa tag `v*` (ou *Run workflow* manual): reusa `scripts/make_dmg.sh` para buildar, assinar, notarizar e fazer staple do DMG, e anexa o arquivo a um GitHub Release.
+
+**Configuração única** — cadastre estes secrets do repositório (*Settings → Secrets and variables → Actions*):
+
+| Secret | Valor |
+|---|---|
+| `MACOS_CERTIFICATE_P12` | base64 do `.p12` do *Developer ID Application* (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PASSWORD` | senha definida ao exportar esse `.p12` |
+| `KEYCHAIN_PASSWORD` | qualquer string (senha do keychain temporário no runner) |
+| `DEVDISK_SIGN_IDENTITY` | `Developer ID Application: Seu Nome (TEAMID)` |
+| `APPLE_ID` | e-mail do Apple ID usado na notarização |
+| `APPLE_TEAM_ID` | Team ID da Apple (10 caracteres) |
+| `APPLE_APP_SPECIFIC_PASSWORD` | senha específica de app desse Apple ID |
+
+Exporte o `.p12` pelo **Acesso às Chaves** (*Meus Certificados* → seu *Developer ID Application* → botão direito → *Exportar*).
+
+**Publicar um release:**
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0   # builda o DMG assinado e publica um GitHub Release
+```
 
 ### Arquitetura
 
