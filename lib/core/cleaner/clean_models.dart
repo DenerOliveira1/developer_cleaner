@@ -1,0 +1,110 @@
+/// Pure data types shared by the cleaner engine and the domain layer.
+///
+/// This file intentionally has **no** `dart:io` / Flutter imports so the
+/// domain layer can re-export it without learning about processes or the
+/// filesystem.
+library;
+
+/// Risk level of a cleanup rule. Drives the UI badge and the confirm gates.
+enum Safety { safe, confirm, danger }
+
+/// What a rule does when executed. Sealed so the engine can exhaustively
+/// switch over every variant.
+sealed class CleanAction {
+  const CleanAction();
+}
+
+/// Move paths to the Trash (reversible). When [contentsOnly] is true the
+/// directory itself is kept and each child entry is trashed instead.
+class TrashPaths extends CleanAction {
+  final List<String> paths;
+  final bool contentsOnly;
+  const TrashPaths(this.paths, {this.contentsOnly = false});
+}
+
+/// Run an external command (e.g. `xcrun`, `docker`, `brew`). Always a list of
+/// arguments — never a shell string — to avoid injection.
+class RunCommand extends CleanAction {
+  final String executable;
+  final List<String> args;
+  const RunCommand(this.executable, this.args);
+}
+
+/// Keep the [keep] newest entries (by mtime) under [parentDir] (optionally
+/// filtered by [namePrefix]) and trash the rest.
+class KeepLatest extends CleanAction {
+  final String parentDir;
+  final String? namePrefix;
+  final int keep;
+  const KeepLatest(this.parentDir, {this.namePrefix, this.keep = 1});
+}
+
+/// A declarative cleanup rule. [label]/[description] are defaults for the CLI
+/// and debugging; the UI overrides them per-language via the i18n dictionary
+/// keyed by [id].
+class CleanupRule {
+  final String id;
+  final String label;
+  final String description;
+  final Safety safety;
+  final CleanAction action;
+  const CleanupRule({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.safety,
+    required this.action,
+  });
+}
+
+/// Result of scanning a single rule.
+class ScanResult {
+  final CleanupRule rule;
+
+  /// Reclaimable bytes, or `null` when unknown (command rules can't be sized
+  /// before running).
+  final int? bytes;
+
+  /// Paths that will be affected — shown as the expand preview.
+  final List<String> targets;
+
+  /// For [KeepLatest] rules: the human-readable note about what is kept.
+  final String? keepNote;
+
+  const ScanResult({
+    required this.rule,
+    required this.bytes,
+    required this.targets,
+    this.keepNote,
+  });
+}
+
+/// One slice of the disk-usage breakdown (for the gauge). [key] is a stable
+/// identifier the UI maps to a localized name and color.
+class DiskCategory {
+  final String key;
+  final int bytes;
+  const DiskCategory(this.key, this.bytes);
+}
+
+/// Whole-disk stats plus the per-category breakdown.
+class DiskStats {
+  final int totalBytes;
+  final int freeBytes;
+  final List<DiskCategory> categories;
+  const DiskStats({
+    required this.totalBytes,
+    required this.freeBytes,
+    required this.categories,
+  });
+
+  int get usedBytes => totalBytes - freeBytes;
+}
+
+/// Raised when a cleaning operation fails. Carries a user-facing message.
+class CleanerException implements Exception {
+  final String message;
+  const CleanerException(this.message);
+  @override
+  String toString() => message;
+}

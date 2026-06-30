@@ -1,0 +1,8 @@
+# Localization codegen config (flutter gen-l10n).
+# ARB sources live in assets/language; generated Dart goes to lib/l10n.
+arb-dir: assets/language
+template-arb-file: app_en.arb
+output-dir: lib/l10n
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

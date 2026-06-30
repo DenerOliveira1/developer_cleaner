@@ -1,0 +1,58 @@
+{
+  "@@locale": "pt",
+
+  "breakdown": "Detalhamento do disco",
+  "used": "USADO",
+  "diskSub": "{free} livres · {total} no total",
+  "reclaimRest": "recuperáveis de lixo de dev",
+  "scan": "Escanear",
+  "reversible": "Os itens vão para a Lixeira — você pode restaurá-los.",
+
+  "scanning": "ESCANEANDO",
+  "reading": "Lendo {rule}…",
+
+  "cleanup": "Limpeza",
+  "selected": "selecionado",
+  "cleanSelected": "Limpar selecionados",
+  "nothing": "Nada para limpar aqui.",
+
+  "cleaning": "LIMPANDO",
+  "stepOf": "de",
+
+  "freeNow": "LIVRE AGORA",
+  "returnedReal": "+{freed} devolvidos ao disco",
+  "complete": "LIMPEZA CONCLUÍDA",
+  "reclaimable": "recuperáveis",
+  "freed": "liberados",
+  "waiting": "aguardando na Lixeira",
+  "trashEmptiedLbl": "Lixeira esvaziada",
+  "emptyCta": "Esvaziar a Lixeira para liberar de vez",
+  "trashEmpty": "Lixeira vazia",
+  "recoverNote": "Itens na Lixeira são recuperáveis até você esvaziá-la.",
+
+  "dTitle": "Remover versões antigas do Android NDK?",
+  "dBody1": "O NDK certo depende do ",
+  "dBody2": " dos seus projetos. Revise as versões abaixo antes de remover — a errada quebra builds nativos.",
+  "reviewed": "Revisei as versões acima.",
+  "cancel": "Cancelar",
+  "moveTrash": "Mover {size} para a Lixeira",
+  "keeps": "Mantém {version}",
+
+  "eTitle": "Esvaziar a Lixeira?",
+  "eBody1": "Isto apaga permanentemente ",
+  "eBody2": " de itens na Lixeira. Este é o único passo que ",
+  "eCant": "não pode ser desfeito",
+  "eBody3": " — tudo antes dele era recuperável.",
+  "keepTrash": "Manter na Lixeira",
+  "emptyTrash": "Esvaziar Lixeira",
+
+  "genericError": "Algo deu errado.",
+
+  "badge": "{safety, select, safe{SEGURO} confirm{CONFIRMAR} danger{PERIGO} other{}}",
+
+  "category": "{key, select, xcode{Xcode / Simuladores} caches{Caches} androidSdk{Android SDK} appSupport{Suporte de apps (IDEs)} free{Livre} other{Outros / Sistema}}",
+
+  "ruleName": "{ruleId, select, derived{Xcode DerivedData} simun{Simuladores indisponíveis} coresim{Caches do CoreSimulator} gradle{Caches do Gradle} brew{Limpeza do Homebrew} intellij{IntelliJ — versões antigas} studio{Android Studio — versões antigas} ndk{Android NDK — versões antigas} docker{Docker — prune (sem volumes)} other{}}",
+
+  "ruleDesc": "{ruleId, select, derived{Intermediários de build que o Xcode recria no próximo build.} simun{Runtimes de simulador sem suporte no seu Xcode.} coresim{Dados de simulador em cache e snapshots de dispositivos.} gradle{Dependências baixadas que o Gradle rebaixa quando preciso.} brew{Downloads antigos e versões obsoletas de fórmulas.} intellij{Caches e plugins de versões da IDE que você não usa mais.} studio{Caches de versões do Android Studio que você já substituiu.} ndk{O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.} docker{Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.} other{}}"
+}

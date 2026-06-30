@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes dd-spin { to { transform: rotate(360deg); } }
+  @keyframes dd-pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</helmet>
+<div style="min-height:100vh;width:100%;background:radial-gradient(120% 120% at 50% -10%, #131218 0%, #0C0B0F 60%, #090809 100%);font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;color:#ECE8E1;display:flex;flex-direction:column;align-items:center;gap:16px;padding:34px 24px 48px;">
+
+  <!-- top row: demo state switcher (outside the app window) -->
+  <div style="width:1000px;max-width:100%;display:flex;align-items:center;justify-content:center;">
+    <div style="display:inline-flex;background:#1A1822;border:1px solid #2A2733;border-radius:11px;padding:4px;gap:3px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset;">
+      <button onClick="{{ goIdle }}" style="{{ segIdle }}">{{ t.idle }}</button>
+      <button onClick="{{ goResults }}" style="{{ segResults }}">{{ t.results }}</button>
+      <button onClick="{{ goDone }}" style="{{ segDone }}">{{ t.done }}</button>
+    </div>
+  </div>
+
+  <!-- macOS window -->
+  <div style="width:1000px;max-width:100%;height:664px;background:#161419;border:1px solid #2A2733;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 50px 120px -28px rgba(0,0,0,.78),0 0 0 1px rgba(255,255,255,.018);">
+
+    <!-- title bar -->
+    <div style="height:46px;flex:none;display:flex;align-items:center;padding:0 16px;background:linear-gradient(180deg,#211E29,#1B1922);border-bottom:1px solid #28252F;position:relative;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="width:12px;height:12px;border-radius:50%;background:#ED6A5E;box-shadow:0 0 0 .5px rgba(0,0,0,.35) inset;"></span>
+        <span style="width:12px;height:12px;border-radius:50%;background:#F4BE4F;box-shadow:0 0 0 .5px rgba(0,0,0,.35) inset;"></span>
+        <span style="width:12px;height:12px;border-radius:50%;background:#61C554;box-shadow:0 0 0 .5px rgba(0,0,0,.35) inset;"></span>
+      </div>
+      <div style="position:absolute;left:0;right:0;text-align:center;pointer-events:none;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;color:#85808F;">
+        DevDisk<span style="color:#4D4956;"> — Macintosh HD</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:12px;align-items:center;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;color:#4D4956;">v2.4 · notarized</span>
+        <div style="display:inline-flex;background:#15131A;border:1px solid #2E2A38;border-radius:8px;padding:2px;gap:2px;">
+          <button onClick="{{ setPt }}" style="{{ langPtStyle }}">PT</button>
+          <button onClick="{{ setEn }}" style="{{ langEnStyle }}">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== IDLE ===== -->
+    <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;min-height:0;">
+      <div style="flex:1.05;display:flex;align-items:center;justify-content:center;padding:28px;border-right:1px solid #211E29;position:relative;">
+        <div style="position:relative;width:336px;height:336px;">
+          <svg viewBox="0 0 320 320" style="width:100%;height:100%;display:block;">
+            <g>
+              <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="60">
+                <line x1="160" x2="160" y1="{{ t.y1 }}" y2="{{ t.y2 }}" stroke="{{ t.stroke }}" stroke-width="{{ t.sw }}" opacity="{{ t.opacity }}" transform="{{ t.transform }}"></line>
+              </sc-for>
+            </g>
+            <circle cx="160" cy="160" r="130" fill="none" stroke="#211E2A" stroke-width="22"></circle>
+            <sc-for list="{{ segIdleArr }}" as="s" hint-placeholder-count="6">
+              <circle cx="160" cy="160" r="130" fill="none" stroke="{{ s.color }}" stroke-width="22" stroke-dasharray="{{ s.dash }}" transform="{{ s.transform }}" stroke-linecap="butt"></circle>
+            </sc-for>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:#6F6A78;margin-bottom:4px;">{{ t.used }}</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:46px;line-height:1;color:#F2EEE7;letter-spacing:-.01em;">933<span style="font-size:18px;color:#8B8693;font-weight:500;"> GB</span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B8693;margin-top:7px;">{{ t.diskSub }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:374px;flex:none;padding:30px 30px 26px;display:flex;flex-direction:column;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;color:#6F6A78;">MACINTOSH HD</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;margin-top:4px;color:#F2EEE7;">{{ t.breakdown }}</div>
+
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:1px;">
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:11px;padding:8px 2px;">
+              <span style="width:9px;height:9px;border-radius:2.5px;background:{{ l.color }};flex:none;"></span>
+              <span style="flex:1;font-size:13.5px;color:#C7C2CC;">{{ l.name }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#9A95A2;">{{ l.size }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:18px;padding:14px 16px;background:#1C1A23;border:1px solid #2A2733;border-radius:10px;display:flex;align-items:center;gap:12px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#6FA0D9;box-shadow:0 0 10px 1px rgba(111,160,217,.55);flex:none;"></span>
+          <div style="font-size:13px;color:#B9B4BF;line-height:1.35;">≈ <span style="font-family:'JetBrains Mono',monospace;color:#9CC0EA;">42 GB</span> {{ t.reclaimRest }}</div>
+        </div>
+
+        <div style="flex:1;"></div>
+
+        <button onClick="{{ onScan }}" style="margin-top:18px;width:100%;height:48px;border:none;border-radius:11px;background:linear-gradient(180deg,#7AAAE0,#5E8BC9);color:#0E1622;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:0 8px 22px -8px rgba(94,139,201,.6),0 1px 0 rgba(255,255,255,.25) inset;">{{ t.scan }}</button>
+        <div style="margin-top:12px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6F6A78;line-height:1.4;">{{ t.reversible }}</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== SCANNING ===== -->
+    <sc-if value="{{ isScanning }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:28px;">
+      <div style="position:relative;width:300px;height:300px;">
+        <svg viewBox="0 0 320 320" style="width:100%;height:100%;display:block;">
+          <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="60">
+            <line x1="160" x2="160" y1="{{ t.y1 }}" y2="{{ t.y2 }}" stroke="{{ t.stroke }}" stroke-width="{{ t.sw }}" opacity="{{ t.opacity }}" transform="{{ t.transform }}"></line>
+          </sc-for>
+          <circle cx="160" cy="160" r="130" fill="none" stroke="#211E2A" stroke-width="22"></circle>
+          <g style="animation:dd-spin 1.3s linear infinite;transform-origin:160px 160px;">
+            <circle cx="160" cy="160" r="130" fill="none" stroke="#6FA0D9" stroke-width="22" stroke-dasharray="140 677" stroke-linecap="round" opacity="0.9"></circle>
+          </g>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:#6F6A78;">{{ t.scanning }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:44px;color:#F2EEE7;line-height:1;margin-top:4px;">{{ scanPct }}<span style="font-size:18px;color:#8B8693;">%</span></div>
+        </div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#9A95A2;animation:dd-pulse 1.4s ease-in-out infinite;">{{ scanLabel }}</div>
+    </div>
+    </sc-if>
+
+    <!-- ===== RESULTS ===== -->
+    <sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      <div style="flex:none;padding:18px 22px;border-bottom:1px solid #211E29;display:flex;align-items:center;gap:18px;">
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:#F2EEE7;">{{ t.cleanup }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6F6A78;margin-top:3px;">{{ t.reversible }}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B8693;">{{ t.selected }} <span style="color:#9CC0EA;">{{ selectedTotal }}</span></div>
+          <button onClick="{{ onClean }}" style="{{ cleanBtnStyle }}">{{ t.cleanSelected }} · {{ selectedTotal }}</button>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:8px 14px 16px;">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="9">
+          <div style="display:flex;flex-direction:column;margin-top:4px;border-radius:11px;border:1px solid {{ r.outline }};background:{{ r.rowBg }};">
+            <div style="display:grid;grid-template-columns:26px 84px 1fr auto 22px;align-items:center;gap:14px;padding:13px 15px;">
+              <div onClick="{{ r.onToggle }}" style="{{ r.boxStyle }}">
+                <sc-if value="{{ r.checked }}" hint-placeholder-val="{{ false }}"><span style="color:#0E1622;font-size:13px;font-weight:700;line-height:1;">✓</span></sc-if>
+              </div>
+              <span style="{{ r.badgeStyle }}">{{ r.badgeLabel }}</span>
+              <div onClick="{{ r.onExpand }}" style="cursor:pointer;min-width:0;">
+                <div style="font-size:14px;font-weight:500;color:{{ r.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.name }}</div>
+                <div style="font-size:12px;color:#7E7989;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.desc }}</div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:{{ r.sizeColor }};text-align:right;min-width:62px;">{{ r.sizeLabel }}</span>
+              <div onClick="{{ r.onExpand }}" style="cursor:pointer;color:#5A5563;text-align:center;font-size:11px;transition:transform .18s ease;transform:{{ r.chev }};">▸</div>
+            </div>
+            <sc-if value="{{ r.expanded }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:0 15px 13px;padding:12px 14px;background:#121116;border:1px solid #221F2A;border-radius:9px;">
+                <sc-if value="{{ r.empty }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6F6A78;">{{ t.nothing }}</div>
+                </sc-if>
+                <sc-for list="{{ r.paths }}" as="p" hint-placeholder-count="3">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A39EAA;line-height:1.9;display:flex;gap:8px;"><span style="color:#4D4956;">›</span><span style="word-break:break-all;">{{ p }}</span></div>
+                </sc-for>
+                <sc-if value="{{ r.keep }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#74BE96;display:flex;gap:7px;align-items:center;"><span>✓</span>{{ r.keep }}</div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== CLEANING ===== -->
+    <sc-if value="{{ isCleaning }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:#6F6A78;">{{ t.cleaning }}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;color:#F2EEE7;text-align:center;">{{ cleanName }}</div>
+      <div style="width:440px;max-width:80%;height:8px;border-radius:6px;background:#221F2A;overflow:hidden;">
+        <div style="height:100%;width:{{ cleanPctW }};background:linear-gradient(90deg,#5E8BC9,#7AAAE0);border-radius:6px;transition:width .3s ease;"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#9A95A2;">{{ cleanStep }}</div>
+    </div>
+    </sc-if>
+
+    <!-- ===== DONE / REVEAL ===== -->
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;min-height:0;">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:28px;border-right:1px solid #211E29;">
+        <div style="position:relative;width:312px;height:312px;">
+          <svg viewBox="0 0 320 320" style="width:100%;height:100%;display:block;">
+            <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="60">
+              <line x1="160" x2="160" y1="{{ t.y1 }}" y2="{{ t.y2 }}" stroke="{{ t.stroke }}" stroke-width="{{ t.sw }}" opacity="{{ t.opacity }}" transform="{{ t.transform }}"></line>
+            </sc-for>
+            <circle cx="160" cy="160" r="130" fill="none" stroke="#211E2A" stroke-width="22"></circle>
+            <sc-for list="{{ segDoneArr }}" as="s" hint-placeholder-count="4">
+              <circle cx="160" cy="160" r="130" fill="none" stroke="{{ s.color }}" stroke-width="22" stroke-dasharray="{{ s.dash }}" transform="{{ s.transform }}" stroke-linecap="butt"></circle>
+            </sc-for>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:#6F6A78;">{{ t.freeNow }}</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:44px;line-height:1;color:#F2EEE7;margin-top:4px;">{{ freeNow }}<span style="font-size:18px;color:#8B8693;font-weight:500;"> GB</span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#74BE96;margin-top:7px;">{{ t.returned }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:404px;flex:none;padding:36px 34px 28px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:#74BE96;">{{ t.complete }}</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:88px;line-height:.9;letter-spacing:-.03em;color:#F4F1EA;">{{ heroNum }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:34px;color:#9CC0EA;">GB</div>
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;color:#8B8693;margin-top:2px;">{{ t.reclaimable }}</div>
+
+        <div style="margin-top:22px;display:flex;align-items:stretch;gap:0;border:1px solid #2A2733;border-radius:11px;overflow:hidden;background:#1A1822;">
+          <div style="flex:1;padding:13px 16px;border-right:1px solid #2A2733;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#74BE96;">6 GB</div>
+            <div style="font-size:11.5px;color:#7E7989;margin-top:3px;">{{ t.freed }}</div>
+          </div>
+          <div style="flex:1;padding:13px 16px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:{{ trashColor }};">{{ trashAmt }}</div>
+            <div style="font-size:11.5px;color:#7E7989;margin-top:3px;">{{ trashLabel }}</div>
+          </div>
+        </div>
+
+        <button onClick="{{ openEmpty }}" disabled="{{ trashEmptied }}" style="{{ emptyBtnStyle }}">{{ emptyBtnLabel }}</button>
+        <div style="margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6F6A78;line-height:1.45;">{{ t.recoverNote }}</div>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ===== DANGER MODAL ===== -->
+  <sc-if value="{{ dangerOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(7,6,9,.66);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px;">
+    <div style="width:472px;max-width:100%;background:#1B1922;border:1px solid #322833;border-radius:15px;overflow:hidden;box-shadow:0 40px 90px -20px rgba(0,0,0,.8);">
+      <div style="padding:22px 24px 18px;border-bottom:1px solid #2A2733;display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:36px;height:36px;flex:none;border-radius:9px;background:rgba(214,112,104,.14);border:1px solid rgba(214,112,104,.34);display:flex;align-items:center;justify-content:center;color:#E58379;font-size:18px;">!</div>
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:#F2EEE7;">{{ t.dTitle }}</div>
+          <div style="font-size:13px;color:#A39EAA;line-height:1.5;margin-top:6px;">{{ t.dBody1 }}<span style="font-family:'JetBrains Mono',monospace;color:#E0B262;">ndkVersion</span>{{ t.dBody2 }}</div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;">
+        <div style="background:#121116;border:1px solid #221F2A;border-radius:9px;padding:12px 14px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A39EAA;line-height:1.95;"><span style="color:#4D4956;">›</span> ndk/21.4.7075529</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A39EAA;line-height:1.95;"><span style="color:#4D4956;">›</span> ndk/23.1.7779620</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A39EAA;line-height:1.95;"><span style="color:#4D4956;">›</span> ndk/25.2.9519653</div>
+          <div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#74BE96;">✓ {{ t.keepNdk }}</div>
+        </div>
+        <div onClick="{{ toggleReviewed }}" style="margin-top:16px;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;">
+          <div style="{{ reviewBoxStyle }}"><sc-if value="{{ reviewed }}" hint-placeholder-val="{{ false }}"><span style="color:#0E1622;font-size:12px;font-weight:700;">✓</span></sc-if></div>
+          <span style="font-size:13px;color:#C7C2CC;">{{ t.reviewed }}</span>
+        </div>
+      </div>
+      <div style="padding:16px 24px 20px;display:flex;gap:10px;justify-content:flex-end;">
+        <button onClick="{{ closeModal }}" style="height:40px;padding:0 18px;border-radius:10px;border:1px solid #322F3B;background:transparent;color:#C7C2CC;font-size:14px;font-weight:500;cursor:pointer;">{{ t.cancel }}</button>
+        <button onClick="{{ confirmDanger }}" disabled="{{ confirmDisabled }}" style="{{ dangerBtnStyle }}">{{ t.moveTrash }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== EMPTY TRASH MODAL ===== -->
+  <sc-if value="{{ emptyOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(7,6,9,.66);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px;">
+    <div style="width:440px;max-width:100%;background:#1B1922;border:1px solid #322833;border-radius:15px;overflow:hidden;box-shadow:0 40px 90px -20px rgba(0,0,0,.8);">
+      <div style="padding:24px 24px 18px;">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:#F2EEE7;">{{ t.eTitle }}</div>
+        <div style="font-size:13.5px;color:#A39EAA;line-height:1.55;margin-top:8px;">{{ t.eBody1 }}<span style="font-family:'JetBrains Mono',monospace;color:#E58379;">36 GB</span>{{ t.eBody2 }}<span style="color:#E58379;">{{ t.eCant }}</span>{{ t.eBody3 }}</div>
+      </div>
+      <div style="padding:8px 24px 20px;display:flex;gap:10px;justify-content:flex-end;">
+        <button onClick="{{ closeModal }}" style="height:40px;padding:0 18px;border-radius:10px;border:1px solid #322F3B;background:transparent;color:#C7C2CC;font-size:14px;font-weight:500;cursor:pointer;">{{ t.keepTrash }}</button>
+        <button onClick="{{ confirmEmpty }}" style="height:40px;padding:0 18px;border-radius:10px;border:1px solid rgba(214,112,104,.4);background:rgba(214,112,104,.16);color:#EC9085;font-size:14px;font-weight:600;cursor:pointer;">{{ t.emptyTrash }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1064, &quot;height&quot;: 760}}">
+class Component extends DCLogic {
+  state = {
+    lang: 'pt',
+    screen: 'idle',
+    selected: { coresim: true, gradle: true, simun: true, brew: true },
+    expandedId: 'ndk',
+    gaugeP: 0,
+    revealP: 0,
+    scanP: 0,
+    cleanIdx: 0,
+    cleanTotal: 0,
+    cleanCur: '',
+    dangerOpen: false,
+    emptyOpen: false,
+    reviewed: false,
+    dangerConfirmed: false,
+    trashEmptied: false,
+  };
+
+  C = 2 * Math.PI * 130;
+
+  STR = {
+    pt: {
+      idle: 'Início', results: 'Resultados', done: 'Concluído',
+      breakdown: 'Detalhamento do disco', used: 'USADO',
+      diskSub: '61 GB livres · 994 GB no total',
+      reclaimRest: 'recuperáveis de lixo de dev',
+      scan: 'Escanear',
+      reversible: 'Os itens vão para a Lixeira — você pode restaurá-los.',
+      scanning: 'ESCANEANDO', readingPrefix: 'Lendo ',
+      cleanup: 'Limpeza', selected: 'selecionado', cleanSelected: 'Limpar selecionados',
+      nothing: 'Nada para limpar aqui.',
+      cleaning: 'LIMPANDO', of: 'de',
+      freeNow: 'LIVRE AGORA', returned: '+6 GB devolvidos ao disco',
+      complete: 'LIMPEZA CONCLUÍDA', reclaimable: 'recuperáveis',
+      freed: 'liberados', waiting: 'aguardando na Lixeira', trashEmptiedLbl: 'Lixeira esvaziada',
+      emptyCta: 'Esvaziar a Lixeira para liberar de vez', trashEmpty: 'Lixeira vazia',
+      recoverNote: 'Itens na Lixeira são recuperáveis até você esvaziá-la.',
+      dTitle: 'Remover versões antigas do Android NDK?',
+      dBody1: 'O NDK certo depende do ', dBody2: ' dos seus projetos. Revise as versões abaixo antes de remover — a errada quebra builds nativos.',
+      reviewed: 'Revisei as versões acima.', cancel: 'Cancelar', moveTrash: 'Mover 5 GB para a Lixeira',
+      keepNdk: 'Mantém 26.1.10909125 — exigido por 2 projetos',
+      eTitle: 'Esvaziar a Lixeira?',
+      eBody1: 'Isto apaga permanentemente ', eBody2: ' de itens na Lixeira. Este é o único passo que ',
+      eCant: 'não pode ser desfeito', eBody3: ' — tudo antes dele era recuperável.',
+      keepTrash: 'Manter na Lixeira', emptyTrash: 'Esvaziar Lixeira',
+      legend: ['Xcode / Simuladores', 'Caches', 'Android SDK', 'Suporte de apps (IDEs)', 'Outros / Sistema', 'Livre'],
+      badge: { safe: 'SEGURO', confirm: 'CONFIRMAR', danger: 'PERIGO' },
+    },
+    en: {
+      idle: 'Idle', results: 'Results', done: 'Done',
+      breakdown: 'Disk breakdown', used: 'USED',
+      diskSub: '61 GB free · 994 GB total',
+      reclaimRest: 'reclaimable from developer junk',
+      scan: 'Scan',
+      reversible: 'Items move to the Trash — you can put them back.',
+      scanning: 'SCANNING', readingPrefix: 'Reading ',
+      cleanup: 'Cleanup', selected: 'selected', cleanSelected: 'Clean selected',
+      nothing: 'Nothing to clean here.',
+      cleaning: 'CLEANING', of: 'of',
+      freeNow: 'FREE NOW', returned: '+6 GB returned to disk',
+      complete: 'CLEANUP COMPLETE', reclaimable: 'reclaimable',
+      freed: 'freed', waiting: 'waiting in Trash', trashEmptiedLbl: 'Trash emptied',
+      emptyCta: 'Empty Trash to free it for good', trashEmpty: 'Trash is empty',
+      recoverNote: 'Trashed items are recoverable until you empty the Trash.',
+      dTitle: 'Remove old Android NDK versions?',
+      dBody1: 'The right NDK depends on your projects’ ', dBody2: '. Review the versions below before removing — the wrong one breaks native builds.',
+      reviewed: 'I reviewed the versions above.', cancel: 'Cancel', moveTrash: 'Move 5 GB to Trash',
+      keepNdk: 'Keeps 26.1.10909125 — required by 2 projects',
+      eTitle: 'Empty Trash?',
+      eBody1: 'This permanently deletes ', eBody2: ' of trashed items. This is the one step that ',
+      eCant: 'cannot be undone', eBody3: ' — everything before it was recoverable.',
+      keepTrash: 'Keep in Trash', emptyTrash: 'Empty Trash',
+      legend: ['Xcode / Simulators', 'Caches', 'Android SDK', 'App Support (IDEs)', 'Other / System', 'Free'],
+      badge: { safe: 'SAFE', confirm: 'CONFIRM', danger: 'DANGER' },
+    },
+  };
+
+  RULE_I18N = {
+    derived: { pt: { name: 'Xcode DerivedData', desc: 'Intermediários de build que o Xcode recria no próximo build.' }, en: { name: 'Xcode DerivedData', desc: 'Build intermediates Xcode regenerates on the next build.' } },
+    simun: { pt: { name: 'Simuladores indisponíveis', desc: 'Runtimes de simulador sem suporte no seu Xcode.' }, en: { name: 'Unavailable simulators', desc: 'Simulator runtimes no longer supported by your Xcode.' } },
+    coresim: { pt: { name: 'Caches do CoreSimulator', desc: 'Dados de simulador em cache e snapshots de dispositivos.' }, en: { name: 'CoreSimulator caches', desc: 'Cached simulator data and device snapshots.' } },
+    gradle: { pt: { name: 'Caches do Gradle', desc: 'Dependências baixadas que o Gradle rebaixa quando preciso.' }, en: { name: 'Gradle caches', desc: 'Downloaded dependencies Gradle re-fetches as needed.' } },
+    brew: { pt: { name: 'Limpeza do Homebrew', desc: 'Downloads antigos e versões obsoletas de fórmulas.' }, en: { name: 'Homebrew cleanup', desc: 'Old downloads and stale formula versions.' } },
+    intellij: { pt: { name: 'IntelliJ — versões antigas', desc: 'Caches e plugins de versões da IDE que você não usa mais.' }, en: { name: 'IntelliJ — old versions', desc: 'Caches and plugins from IDE versions you no longer run.' } },
+    studio: { pt: { name: 'Android Studio — versões antigas', desc: 'Caches de versões do Android Studio que você já substituiu.' }, en: { name: 'Android Studio — old versions', desc: 'Caches from Android Studio releases you have replaced.' } },
+    ndk: { pt: { name: 'Android NDK — versões antigas', desc: 'O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.' }, en: { name: 'Android NDK — old versions', desc: 'The right NDK depends on your projects’ ndkVersion. Review before removing.' } },
+    docker: { pt: { name: 'Docker — prune (sem volumes)', desc: 'Imagens órfãs e camadas de build paradas. Volumes nomeados não são tocados.' }, en: { name: 'Docker — prune (no volumes)', desc: 'Dangling images and stopped build layers. Named volumes are left untouched.' } },
+  };
+
+  get ruleMeta() {
+    return [
+      { id: 'derived', size: 0, sizeLabel: '0 B', risk: 'safe', selectable: false, empty: true, paths: ['~/Library/Developer/Xcode/DerivedData'] },
+      { id: 'simun', size: 0, sizeLabel: '—', risk: 'safe', selectable: true, paths: ['~/Library/Developer/CoreSimulator/Devices/<unavailable runtimes>'] },
+      { id: 'coresim', size: 12, sizeLabel: '12 GB', risk: 'safe', selectable: true, paths: ['~/Library/Developer/CoreSimulator/Caches', '~/Library/Developer/CoreSimulator/Cryptex'] },
+      { id: 'gradle', size: 3.1, sizeLabel: '3.1 GB', risk: 'safe', selectable: true, paths: ['~/.gradle/caches', '~/.gradle/wrapper/dists'] },
+      { id: 'brew', size: 0, sizeLabel: '—', risk: 'safe', selectable: true, paths: ['~/Library/Caches/Homebrew', '/opt/homebrew/Cellar/<outdated>'] },
+      { id: 'intellij', size: 10, sizeLabel: '10 GB', risk: 'confirm', selectable: true, paths: ['~/Library/Caches/JetBrains/IntelliJIdea2023.1', '~/Library/Application Support/JetBrains/IntelliJIdea2023.2', '~/Library/Logs/JetBrains/IntelliJIdea2023.1'] },
+      { id: 'studio', size: 1.5, sizeLabel: '1.5 GB', risk: 'confirm', selectable: true, paths: ['~/Library/Caches/Google/AndroidStudio2023.1', '~/Library/Application Support/Google/AndroidStudio2023.1'] },
+      { id: 'ndk', size: 5, sizeLabel: '5 GB', risk: 'danger', selectable: true, keep: true, paths: ['~/Library/Android/sdk/ndk/21.4.7075529', '~/Library/Android/sdk/ndk/23.1.7779620', '~/Library/Android/sdk/ndk/25.2.9519653'] },
+      { id: 'docker', size: 10.4, sizeLabel: '10.4 GB', risk: 'confirm', selectable: true, paths: ['docker image prune -f', 'docker builder prune -f'] },
+    ];
+  }
+
+  rulesFor(lang) {
+    return this.ruleMeta.map(m => ({ ...m, name: this.RULE_I18N[m.id][lang].name, desc: this.RULE_I18N[m.id][lang].desc }));
+  }
+
+  componentDidMount() {
+    this.reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this.reduce) { this.setState({ gaugeP: 1 }); }
+    else { this.tween('gaugeP', 1, 1100); }
+  }
+
+  ease(t) { return 1 - Math.pow(1 - t, 3); }
+
+  tween(key, to, dur, done) {
+    if (this.reduce) { this.setState({ [key]: to }); if (done) done(); return; }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      this.setState({ [key]: this.ease(t) * to });
+      if (t < 1) requestAnimationFrame(step); else if (done) done();
+    };
+    requestAnimationFrame(step);
+  }
+
+  fmt(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1); }
+
+  setPt = () => this.setState({ lang: 'pt' });
+  setEn = () => this.setState({ lang: 'en' });
+
+  goIdle = () => this.setState({ screen: 'idle', dangerOpen: false, emptyOpen: false });
+  goResults = () => this.setState({ screen: 'results', dangerOpen: false, emptyOpen: false });
+  goDone = () => { this.setState({ screen: 'done', revealP: 1, dangerOpen: false, emptyOpen: false }); };
+
+  onScan = () => {
+    this.setState({ screen: 'scanning', scanP: 0 });
+    if (this.reduce) { this.setState({ screen: 'results', scanP: 1 }); return; }
+    const start = performance.now(), dur = 1700;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      this.setState({ scanP: t });
+      if (t < 1) requestAnimationFrame(step);
+      else setTimeout(() => this.setState({ screen: 'results' }), 160);
+    };
+    requestAnimationFrame(step);
+  };
+
+  onClean = () => {
+    const total = this.selectedSum();
+    if (total <= 0) return;
+    const dangerSelected = this.ruleMeta.some(r => r.risk === 'danger' && this.state.selected[r.id]);
+    if (dangerSelected && !this.state.dangerConfirmed) { this.setState({ dangerOpen: true }); return; }
+    this.startClean();
+  };
+
+  startClean = () => {
+    const list = this.rulesFor(this.state.lang).filter(r => r.selectable && this.state.selected[r.id]);
+    this.setState({ screen: 'cleaning', cleanIdx: 0, cleanTotal: list.length, cleanCur: list[0] ? list[0].name : '' });
+    if (this.reduce) { this.finishClean(); return; }
+    let i = 0;
+    const tick = () => {
+      i++;
+      if (i >= list.length) { this.finishClean(); return; }
+      this.setState({ cleanIdx: i, cleanCur: list[i].name });
+      setTimeout(tick, 1900 / list.length);
+    };
+    setTimeout(tick, 1900 / list.length);
+  };
+
+  finishClean = () => {
+    this.setState({ screen: 'done', revealP: 0 });
+    this.tween('revealP', 1, 1400);
+  };
+
+  toggle(id) {
+    const sel = { ...this.state.selected, [id]: !this.state.selected[id] };
+    this.setState({ selected: sel });
+  }
+  expand(id) { this.setState({ expandedId: this.state.expandedId === id ? null : id }); }
+
+  selectedSum() {
+    return this.ruleMeta.reduce((a, r) => a + (r.selectable && this.state.selected[r.id] ? r.size : 0), 0);
+  }
+
+  closeModal = () => this.setState({ dangerOpen: false, emptyOpen: false });
+  toggleReviewed = () => this.setState({ reviewed: !this.state.reviewed });
+  confirmDanger = () => {
+    if (!this.state.reviewed) return;
+    this.setState({ dangerOpen: false, dangerConfirmed: true });
+    setTimeout(this.startClean, 60);
+  };
+  openEmpty = () => { if (!this.state.trashEmptied) this.setState({ emptyOpen: true }); };
+  confirmEmpty = () => this.setState({ emptyOpen: false, trashEmptied: true });
+
+  buildSegments(list, total, p) {
+    const C = this.C; let cum = 0; const out = [];
+    for (const s of list) {
+      const len = (s.size / total) * C * p;
+      const rot = (cum / total) * 360 - 90;
+      out.push({ color: s.color, dash: `${len.toFixed(2)} ${(C - len).toFixed(2)}`, transform: `rotate(${rot.toFixed(3)} 160 160)` });
+      cum += s.size;
+    }
+    return out;
+  }
+
+  segStyle(active) {
+    return active
+      ? 'padding:7px 18px;border-radius:8px;border:none;background:#2E2A38;color:#F2EEE7;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;'
+      : 'padding:7px 18px;border-radius:8px;border:none;background:transparent;color:#85808F;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;';
+  }
+
+  langStyle(active) {
+    return active
+      ? 'padding:4px 11px;border-radius:6px;border:none;background:#33303D;color:#F2EEE7;font-size:11px;font-weight:600;letter-spacing:.05em;cursor:pointer;font-family:JetBrains Mono,monospace;'
+      : 'padding:4px 11px;border-radius:6px;border:none;background:transparent;color:#6F6A78;font-size:11px;font-weight:600;letter-spacing:.05em;cursor:pointer;font-family:JetBrains Mono,monospace;';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const lang = s.lang;
+    const t = this.STR[lang];
+    const screen = s.screen;
+    const reviewed = s.reviewed;
+
+    const ticks = [];
+    for (let i = 0; i < 60; i++) {
+      const major = i % 5 === 0;
+      ticks.push({
+        transform: `rotate(${i * 6} 160 160)`,
+        y1: major ? 9 : 13, y2: major ? 22 : 19,
+        stroke: major ? '#6F6A78' : '#3A3743',
+        sw: major ? 1.6 : 1, opacity: major ? 0.55 : 0.7,
+      });
+    }
+
+    const legColors = ['#5C8AC9', '#4FA39A', '#7FA85A', '#C8924E', '#5A5764', '#34313D'];
+    const legSizes = ['33 GB', '23 GB', '22 GB', '29 GB', '826 GB', '61 GB'];
+    const legend = t.legend.map((name, i) => ({ name, size: legSizes[i], color: legColors[i] }));
+
+    const idleList = [
+      { size: 33, color: '#5C8AC9' }, { size: 23, color: '#4FA39A' },
+      { size: 22, color: '#7FA85A' }, { size: 29, color: '#C8924E' },
+      { size: 826, color: '#5A5764' }, { size: 61, color: '#2A2733' },
+    ];
+    const segIdleArr = this.buildSegments(idleList, 994, s.gaugeP);
+
+    const p = s.revealP;
+    const doneList = [
+      { size: 891 + 42 * (1 - p), color: '#5A5764' },
+      { size: 6 * p, color: '#74BE96' },
+      { size: 36 * p, color: 'rgba(111,160,217,0.42)' },
+      { size: 61, color: '#2A2733' },
+    ];
+    const segDoneArr = this.buildSegments(doneList, 994, 1);
+
+    const badge = {
+      safe: { background: 'rgba(95,163,125,.12)', color: '#74BE96', border: '1px solid rgba(95,163,125,.30)' },
+      confirm: { background: 'rgba(214,162,78,.12)', color: '#E0B262', border: '1px solid rgba(214,162,78,.32)' },
+      danger: { background: 'rgba(214,112,104,.13)', color: '#E58379', border: '1px solid rgba(214,112,104,.34)' },
+    };
+
+    const rows = this.rulesFor(lang).map(r => {
+      const checked = !!(r.selectable && s.selected[r.id]);
+      const bs = badge[r.risk];
+      const boxStyle = r.selectable
+        ? `width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1.5px solid ${checked ? '#7AAAE0' : '#3A3743'};background:${checked ? 'linear-gradient(180deg,#7AAAE0,#5E8BC9)' : 'transparent'};`
+        : 'width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;border:1.5px solid #2A2733;background:#1A1822;color:#4D4956;';
+      return {
+        id: r.id, name: r.name, desc: r.desc, sizeLabel: r.sizeLabel,
+        badgeLabel: t.badge[r.risk],
+        badgeStyle: { ...bs, display: 'inline-block', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', letterSpacing: '.1em', fontWeight: 600, padding: '4px 0', borderRadius: '6px', width: '84px' },
+        checked, boxStyle,
+        nameColor: r.empty ? '#7E7989' : '#E7E2DC',
+        sizeColor: r.empty ? '#5A5563' : (checked ? '#9CC0EA' : '#9A95A2'),
+        expanded: s.expandedId === r.id,
+        chev: s.expandedId === r.id ? 'rotate(90deg)' : 'rotate(0deg)',
+        outline: s.expandedId === r.id ? '#2E2A38' : 'transparent',
+        rowBg: s.expandedId === r.id ? '#1B1922' : 'transparent',
+        empty: !!r.empty, keep: r.keep ? t.keepNdk : '', paths: r.paths,
+        onToggle: () => r.selectable && this.toggle(r.id),
+        onExpand: () => this.expand(r.id),
+      };
+    });
+
+    const total = this.selectedSum();
+    const selectedTotal = total > 0 ? this.fmt(total) + ' GB' : '0 GB';
+    const cleanDisabled = total <= 0;
+    const cleanBtnStyle = cleanDisabled
+      ? 'height:40px;padding:0 18px;border:none;border-radius:10px;background:#26232D;color:#5A5563;font-family:Space Grotesk,sans-serif;font-weight:600;font-size:14px;cursor:not-allowed;'
+      : 'height:40px;padding:0 20px;border:none;border-radius:10px;background:linear-gradient(180deg,#7AAAE0,#5E8BC9);color:#0E1622;font-family:Space Grotesk,sans-serif;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 6px 16px -6px rgba(94,139,201,.55),0 1px 0 rgba(255,255,255,.25) inset;';
+
+    const scanPct = Math.round(s.scanP * 100);
+    const scanNames = this.rulesFor(lang).map(r => r.name);
+    const scanLabel = t.readingPrefix + (scanNames[Math.min(scanNames.length - 1, Math.floor(s.scanP * scanNames.length))] || '') + '…';
+
+    const cleanStep = s.cleanTotal ? `${Math.min(s.cleanIdx + 1, s.cleanTotal)} ${t.of} ${s.cleanTotal}` : '';
+    const cleanPctW = s.cleanTotal ? Math.round(((s.cleanIdx + 1) / s.cleanTotal) * 100) + '%' : '0%';
+
+    const heroNum = p >= 1 ? '42' : (42 * p).toFixed(1);
+    const freeNow = 61 + Math.round(6 * p);
+    const trashAmt = s.trashEmptied ? '0 GB' : '36 GB';
+    const trashLabel = s.trashEmptied ? t.trashEmptiedLbl : t.waiting;
+    const trashColor = s.trashEmptied ? '#74BE96' : '#9CC0EA';
+    const emptyBtnStyle = s.trashEmptied
+      ? 'margin-top:22px;height:46px;border:1px solid #2A2733;border-radius:11px;background:transparent;color:#5A5563;font-family:Space Grotesk,sans-serif;font-weight:600;font-size:14.5px;cursor:default;'
+      : 'margin-top:22px;height:46px;border:1px solid rgba(214,112,104,.36);border-radius:11px;background:rgba(214,112,104,.10);color:#EC9085;font-family:Space Grotesk,sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;';
+    const emptyBtnLabel = s.trashEmptied ? t.trashEmpty : t.emptyCta;
+
+    const reviewBoxStyle = `width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;border:1.5px solid ${reviewed ? '#7AAAE0' : '#3A3743'};background:${reviewed ? 'linear-gradient(180deg,#7AAAE0,#5E8BC9)' : 'transparent'};`;
+    const dangerBtnStyle = reviewed
+      ? 'height:40px;padding:0 18px;border-radius:10px;border:1px solid rgba(214,112,104,.42);background:rgba(214,112,104,.18);color:#EC9085;font-size:14px;font-weight:600;cursor:pointer;'
+      : 'height:40px;padding:0 18px;border-radius:10px;border:1px solid #2A2733;background:#221F2A;color:#5A5563;font-size:14px;font-weight:600;cursor:not-allowed;';
+
+    return {
+      t, ticks, legend, segIdleArr, segDoneArr, rows,
+      isIdle: screen === 'idle', isScanning: screen === 'scanning', isResults: screen === 'results',
+      isCleaning: screen === 'cleaning', isDone: screen === 'done',
+      segIdle: this.segStyle(screen === 'idle' || screen === 'scanning'),
+      segResults: this.segStyle(screen === 'results' || screen === 'cleaning'),
+      segDone: this.segStyle(screen === 'done'),
+      langPtStyle: this.langStyle(lang === 'pt'),
+      langEnStyle: this.langStyle(lang === 'en'),
+      setPt: this.setPt, setEn: this.setEn,
+      goIdle: this.goIdle, goResults: this.goResults, goDone: this.goDone,
+      onScan: this.onScan, onClean: this.onClean,
+      selectedTotal, cleanBtnStyle,
+      scanPct, scanLabel,
+      cleanName: s.cleanCur, cleanStep, cleanPctW,
+      heroNum, freeNow, trashAmt, trashLabel, trashColor,
+      openEmpty: this.openEmpty, emptyBtnStyle, emptyBtnLabel, trashEmptied: s.trashEmptied,
+      dangerOpen: s.dangerOpen, emptyOpen: s.emptyOpen, reviewed,
+      reviewBoxStyle, dangerBtnStyle, confirmDisabled: !reviewed,
+      closeModal: this.closeModal, toggleReviewed: this.toggleReviewed,
+      confirmDanger: this.confirmDanger, confirmEmpty: this.confirmEmpty,
+    };
+  }
+}
+</script>
+</body>
+</html>
