@@ -163,7 +163,6 @@ void main() {
 
     final scan = await engine.scan(rule);
     expect(scan.keepNote, 'iOS 26.5'); // newest by version
-    expect(scan.bytes, isNull);
     expect(scan.targets.length, 2); // 18.0 + 18.5; watchOS filtered out
     expect(scan.targets.any((t) => t.contains('18.0')), isTrue);
 

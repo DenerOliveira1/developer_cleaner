@@ -112,13 +112,18 @@ class CleanerEngine {
 
   /// Plan for [DeleteSimRuntimes]: keep the [keep] newest **available iOS**
   /// runtimes (by version), remove the rest. Returns the runtime identifiers
-  /// to delete, human-readable labels, and the kept version note.
-  Future<({List<String> ids, List<String> labels, String? keepNote})>
-      _simRuntimePlan(int keep) async {
+  /// to delete, human-readable labels, their on-disk roots, and the kept note.
+  Future<
+      ({
+        List<String> ids,
+        List<String> labels,
+        List<String> paths,
+        String? keepNote
+      })> _simRuntimePlan(int keep) async {
     final res = await _runner.run('xcrun', ['simctl', 'list', 'runtimes', '-j']);
     final out = (res.stdout as String?) ?? '';
     if (out.trim().isEmpty) {
-      return (ids: <String>[], labels: <String>[], keepNote: null);
+      return (ids: <String>[], labels: <String>[], paths: <String>[], keepNote: null);
     }
     final list = ((jsonDecode(out) as Map)['runtimes'] as List?) ?? [];
     final runtimes = list
@@ -131,6 +136,10 @@ class CleanerEngine {
     return (
       ids: remove.map((r) => '${r['identifier']}').toList(),
       labels: remove.map((r) => '${r['name']} (${r['identifier']})').toList(),
+      paths: remove
+          .map((r) => '${r['runtimeRoot'] ?? r['bundlePath'] ?? ''}')
+          .where((p) => p.isNotEmpty)
+          .toList(),
       keepNote: runtimes.take(keep).map((r) => '${r['name']}').join(', '),
     );
   }
@@ -172,7 +181,7 @@ class CleanerEngine {
         final plan = await _simRuntimePlan(keep);
         return ScanResult(
           rule: rule,
-          bytes: null, // runtime sizes aren't cheaply measurable
+          bytes: await du(plan.paths), // du over the runtime roots (slow-ish)
           targets: plan.labels,
           keepNote: plan.keepNote,
         );
