@@ -1,10 +1,9 @@
 name: CI
 
 # Lint + tests on a cheap Ubuntu runner, then a macOS sanity build (only if the
-# tests pass) on every PR and push to main.
+# tests pass). PR-only — the merged state is already tested on the PR, so there
+# is no redundant re-run on push to main.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
