@@ -349,7 +349,7 @@ const List<CleanupRule> kRules = [
     id: 'simun',
     label: 'Simuladores indisponíveis',
     description: 'Runtimes de simulador sem suporte no seu Xcode.',
-    // IRREVERSÍVEL (simctl delete, sem Lixeira) → nunca 'safe' por padrão.
+    // Irreversible (simctl delete — no Trash), so never 'safe' by default.
     safety: Safety.confirm,
     action: RunCommand('xcrun', ['simctl', 'delete', 'unavailable']),
   ),
@@ -358,8 +358,8 @@ const List<CleanupRule> kRules = [
     label: 'Caches do CoreSimulator',
     description: 'Dados de simulador em cache e snapshots de dispositivos.',
     safety: Safety.safe,
-    // Apenas o cache recriável. NUNCA incluir Cryptex/Devices/Volumes — são o
-    // runtime e os dados do simulador, não cache.
+    // Recreatable cache only. NEVER include Cryptex/Devices/Volumes — those are
+    // the simulator runtime and data, not cache.
     action: TrashPaths([
       '~/Library/Developer/CoreSimulator/Caches',
     ], contentsOnly: true),
@@ -378,7 +378,7 @@ const List<CleanupRule> kRules = [
     id: 'brew',
     label: 'Limpeza do Homebrew',
     description: 'Downloads antigos e versões obsoletas de fórmulas.',
-    // IRREVERSÍVEL (brew cleanup, sem Lixeira) → nunca 'safe' por padrão.
+    // Irreversible (brew cleanup — no Trash), so never 'safe' by default.
     safety: Safety.confirm,
     action: RunCommand('brew', ['cleanup', '-s']),
   ),
@@ -529,7 +529,7 @@ Future<void> main(List<String> argv) async {
         await engine.clean(rule);
         stdout.writeln('  ok ${rule.id}');
       } catch (e) {
-        // Falha graciosa: uma regra não derruba as outras (spec §9.7).
+        // Graceful failure: one rule's error doesn't abort the others (spec §9.7).
         stdout.writeln('  ERRO ${rule.id}: $e');
       }
     }
