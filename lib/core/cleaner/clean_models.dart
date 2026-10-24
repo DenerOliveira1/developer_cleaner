@@ -30,13 +30,16 @@ class RunCommand extends CleanAction {
   const RunCommand(this.executable, this.args);
 }
 
-/// Keep the [keep] newest entries (by mtime) under [parentDir] (optionally
-/// filtered by [namePrefix]) and trash the rest.
+/// Keep the [keep] newest entries under [parentDir] (optionally filtered by
+/// [namePrefix]) and trash the rest. "Newest" is by mtime, or by the dotted
+/// version in the name (after [namePrefix]) when [byVersion] is set.
 class KeepLatest extends CleanAction {
   final String parentDir;
   final String? namePrefix;
   final int keep;
-  const KeepLatest(this.parentDir, {this.namePrefix, this.keep = 1});
+  final bool byVersion;
+  const KeepLatest(this.parentDir,
+      {this.namePrefix, this.keep = 1, this.byVersion = false});
 }
 
 /// Keep the [keep] newest iOS simulator runtimes (by version) and permanently

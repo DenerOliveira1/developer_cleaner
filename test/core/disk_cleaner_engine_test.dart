@@ -97,6 +97,31 @@ void main() {
     expect(script, isNot(contains(newest.path)));
   });
 
+  test('KeepLatest byVersion keeps the highest version regardless of mtime',
+      () async {
+    final engine = CleanerEngine(runner: FakeProcessRunner());
+
+    final parent = Directory('${tmp.path}/ndk')..createSync();
+    // 27.0 was installed after 28.2 (newer mtime) but 28.2 is the newer NDK;
+    // 9.0 checks the compare is numeric, not lexicographic.
+    final v9 = Directory('${parent.path}/9.0.1')..createSync();
+    final v27 = Directory('${parent.path}/27.0.12077973')..createSync();
+    final v28 = Directory('${parent.path}/28.2.13676358')..createSync();
+    Process.runSync('touch', ['-t', '202601010000', v28.path]);
+    Process.runSync('touch', ['-t', '202609010000', v27.path]);
+    Process.runSync('touch', ['-t', '202610010000', v9.path]);
+
+    final result = await engine.scan(CleanupRule(
+      id: 'ndk',
+      label: 'ndk',
+      description: '',
+      safety: Safety.danger,
+      action: KeepLatest(parent.path, keep: 1, byVersion: true),
+    ));
+    expect(result.keepNote, '28.2.13676358');
+    expect(result.targets, unorderedEquals([v9.path, v27.path]));
+  });
+
   test('dry-run does not trash anything', () async {
     final runner = FakeProcessRunner();
     final engine = CleanerEngine(runner: runner);

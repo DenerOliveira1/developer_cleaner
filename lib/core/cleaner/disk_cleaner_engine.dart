@@ -101,16 +101,21 @@ class CleanerEngine {
   }
 
   /// Resolves the directories to remove under a [KeepLatest] action: keep the
-  /// [keep] newest by mtime, remove the rest.
-  _KeepPlan _keepLatestPlan(String parent, String? prefix, int keep) {
+  /// [keep] newest (by mtime, or by name version when [byVersion]), remove the
+  /// rest.
+  _KeepPlan _keepLatestPlan(String parent, String? prefix, int keep,
+      {bool byVersion = false}) {
     final dir = Directory(parent);
     if (!dir.existsSync()) return (remove: <String>[], keepNote: null);
+    String version(Directory d) =>
+        d.path.split('/').last.substring(prefix?.length ?? 0);
     final entries = dir.listSync().whereType<Directory>().where((d) {
       final name = d.path.split('/').last;
       return prefix == null || prefix.isEmpty || name.startsWith(prefix);
     }).toList()
-      ..sort((a, b) =>
-          b.statSync().modified.compareTo(a.statSync().modified)); // mtime desc
+      ..sort((a, b) => byVersion
+          ? _compareVersions(version(b), version(a)) // version desc
+          : b.statSync().modified.compareTo(a.statSync().modified)); // mtime desc
     final kept = entries.take(keep).toList();
     final remove = entries.skip(keep).map((e) => e.path).toList();
     final keepNote = kept.isEmpty
@@ -225,8 +230,14 @@ class CleanerEngine {
           bytes: null,
           targets: ['$executable ${args.join(' ')}'],
         );
-      case KeepLatest(:final parentDir, :final namePrefix, :final keep):
-        final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep);
+      case KeepLatest(
+          :final parentDir,
+          :final namePrefix,
+          :final keep,
+          :final byVersion
+        ):
+        final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep,
+            byVersion: byVersion);
         return ScanResult(
           rule: rule,
           bytes: await du(plan.remove),
@@ -269,8 +280,14 @@ class CleanerEngine {
           throw CleanerException(CleanerErrorCode.runCommand,
               detail: '$executable ${args.join(' ')} — ${res.stderr}');
         }
-      case KeepLatest(:final parentDir, :final namePrefix, :final keep):
-        final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep);
+      case KeepLatest(
+          :final parentDir,
+          :final namePrefix,
+          :final keep,
+          :final byVersion
+        ):
+        final plan = _keepLatestPlan(expandHome(parentDir), namePrefix, keep,
+            byVersion: byVersion);
         if (dryRun) return;
         await trashAll(plan.remove);
       case DeleteSimRuntimes(:final keep):
@@ -444,7 +461,7 @@ const List<CleanupRule> kRules = [
     description:
         'O NDK certo depende do ndkVersion dos seus projetos. Revise antes de remover.',
     safety: Safety.danger,
-    action: KeepLatest('~/Library/Android/sdk/ndk', keep: 1),
+    action: KeepLatest('~/Library/Android/sdk/ndk', keep: 1, byVersion: true),
   ),
   CleanupRule(
     id: 'docker',
